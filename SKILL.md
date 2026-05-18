@@ -295,8 +295,12 @@ The fix is a four-part contract — none of them alone is enough:
   text-wrap: pretty;
 }
 
-.table-ja th {
-  white-space: nowrap;          /* short headers must not break */
+/* Opt-in nowrap — apply ONLY when the header is confidently short
+   (≤8 CJK chars or ≤15 Latin chars) AND fits the assigned column width.
+   Blanket-nowrapping every th forces overflow when descriptive headers
+   exceed the column. */
+.table-ja th.is-compact {
+  white-space: nowrap;
   word-break: keep-all;
   line-break: strict;
 }
@@ -339,7 +343,8 @@ Sum of widths must be 100% when using percentages.
 | Symptom | Cause | Fix |
 |---|---|---|
 | "コー / ド" — single-character orphan | `overflow-wrap: anywhere` inherited from `body` | Add `overflow-wrap: normal` to `.table-ja td` and `.table-ja th` |
-| "アプリ同 / 梱" — header breaks mid-word | `th` allowed to wrap | Add `white-space: nowrap; word-break: keep-all` to `th` |
+| "アプリ同 / 梱" — short category header breaks mid-word | `th` allowed to wrap with no break-strategy | Add `.is-compact` class with `white-space: nowrap; word-break: keep-all` to that `th` |
+| "Zenith (無料)" header overflows the column to the right | `th` blanket-nowrapped while descriptive header exceeds column width | Remove `nowrap` from that `th` — let it wrap at phrase / space boundaries with `auto-phrase` + `pretty` |
 | "Adobe埋め込みコー / ド" after wrap fixes | Column narrower than the cell's longest string | Widen that column in `<colgroup>` or shorten cell text |
 | Long-description column squeezing short columns flat | Default `table-layout: auto` | Add `table-layout: fixed` + `<colgroup>` |
 | Cell text overflows the cell horizontally | `overflow-wrap: normal` + no break opportunity (rare for Japanese; common for long URLs) | Allow `overflow-wrap: anywhere` only in that specific cell, or shorten the content |

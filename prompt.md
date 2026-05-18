@@ -190,8 +190,11 @@ The four-part contract:
   text-wrap: pretty;
 }
 
-.table-ja th {
-  white-space: nowrap;        /* short headers must not break */
+/* Opt-in nowrap. Apply ONLY when the header is confidently short
+   (≤8 CJK chars or ≤15 Latin chars) and fits its column. Blanket-nowrapping
+   forces overflow on descriptive headers like "一般的なToDoアプリ". */
+.table-ja th.is-compact {
+  white-space: nowrap;
   word-break: keep-all;
   line-break: strict;
 }
@@ -226,7 +229,8 @@ Column sizing rules of thumb (at ~0.94rem, ~17px per Japanese char, ~9px per Lat
 Diagnostic shortcuts:
 
 - "コー / ド" — single-char orphan → add `overflow-wrap: normal` on cells
-- "アプリ同 / 梱" — header broken mid-word → add `white-space: nowrap` on `th`
+- "アプリ同 / 梱" — short category header broken mid-word → add `.is-compact` class with `white-space: nowrap` on that `th`
+- "Zenith (無料)" header overflows column → remove `nowrap` from that `th` (let auto-phrase wrap)
 - "Adobe埋め込みコー / ド" after wrap fixes → column too narrow, widen `<col>` or shorten cell text
 - Long-description column squeezing others → add `table-layout: fixed` + `<colgroup>`
 
