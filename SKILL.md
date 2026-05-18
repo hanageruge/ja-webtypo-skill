@@ -1,5 +1,5 @@
 ---
-name: ja-typo-skill
+name: ja-webtypo-skill
 description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue, Svelte, Astro. Fixes awkward Japanese line breaks; improves readability of headings, body, buttons, cards, nav, forms. Applies proper letter-spacing, line-height, font stack, CJK punctuation handling, and responsive verification. Triggers when Japanese text wraps oddly, headings look cramped, particles strand at line ends, or a site needs production-grade Japanese typography defaults.
 ---
 

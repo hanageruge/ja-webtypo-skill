@@ -1,4 +1,4 @@
-# ja-typo-skill
+# ja-webtypo-skill
 
 日本語Webタイポグラフィを最適化するための、AIアシスタント向けスキル / プロンプト集です。
 
@@ -49,27 +49,27 @@ LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイ
 #### 方法 A: ユーザーグローバルに symlink（推奨）
 
 ```bash
-git clone https://github.com/hanageruge/ja-typo-skill.git ~/ja-typo-skill
+git clone https://github.com/hanageruge/ja-webtypo-skill.git ~/ja-webtypo-skill
 mkdir -p ~/.claude/skills
-ln -s ~/ja-typo-skill ~/.claude/skills/ja-typo-skill
+ln -s ~/ja-webtypo-skill ~/.claude/skills/ja-webtypo-skill
 ```
 
-Claude Code を再起動すると、スキル一覧に `ja-typo-skill` が出ます。
+Claude Code を再起動すると、スキル一覧に `ja-webtypo-skill` が出ます。
 
 #### 方法 B: プロジェクトローカルに配置
 
 ```bash
 cd your-project
 mkdir -p .claude/skills
-git clone https://github.com/hanageruge/ja-typo-skill.git .claude/skills/ja-typo-skill
+git clone https://github.com/hanageruge/ja-webtypo-skill.git .claude/skills/ja-webtypo-skill
 ```
 
 #### 方法 C: SKILL.md を単体で配置
 
 ```bash
-mkdir -p ~/.claude/skills/ja-typo-skill
-curl -o ~/.claude/skills/ja-typo-skill/SKILL.md \
-  https://raw.githubusercontent.com/hanageruge/ja-typo-skill/main/SKILL.md
+mkdir -p ~/.claude/skills/ja-webtypo-skill
+curl -o ~/.claude/skills/ja-webtypo-skill/SKILL.md \
+  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/SKILL.md
 ```
 
 ---
@@ -80,7 +80,7 @@ curl -o ~/.claude/skills/ja-typo-skill/SKILL.md \
 
 ```bash
 curl -o .cursorrules \
-  https://raw.githubusercontent.com/hanageruge/ja-typo-skill/main/prompt.md
+  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
 ```
 
 ---
@@ -92,7 +92,7 @@ curl -o .cursorrules \
 ```bash
 mkdir -p .github
 curl -o .github/copilot-instructions.md \
-  https://raw.githubusercontent.com/hanageruge/ja-typo-skill/main/prompt.md
+  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
 ```
 
 ---
@@ -117,7 +117,7 @@ curl -o .github/copilot-instructions.md \
 
 ```bash
 curl -o .clinerules \
-  https://raw.githubusercontent.com/hanageruge/ja-typo-skill/main/prompt.md
+  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
 ```
 
 ---
