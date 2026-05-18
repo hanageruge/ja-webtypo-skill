@@ -78,6 +78,8 @@ h1, h2, h3, h4 {
 12. Decide editorial strictness before writing CSS. JLREQ defines newspaper (loose), magazine (mid), and book (strict) line-break levels. Brand sites / dashboards / long-form pages should stay strict; narrow news columns may go loose. Map this to `line-break: loose / normal / strict`.
 13. Treat `<wbr>` as the inverse of `nowrap`. `nowrap` says "never break here." `<wbr>` says "you may break here if needed." Use them together: `nowrap` protects quoted phrases and product names; `<wbr>` is a safety valve for long compound katakana, long URLs, brand-name + suffix combinations. Unlike `<br>`, `<wbr>` is invisible until the line actually needs to break.
 14. Wrap inline English in `<span lang="en">` and let `hyphens: auto` handle it. Avoid `word-break: break-all` for long English words in Japanese body — mark them with `lang="en"`, apply `:lang(en) { hyphens: auto }`, optionally use `&shy;` at preferred break points.
+15. Audit outer CSS selectors when extending a card template. Pre-existing broad descendant selectors (`.card span`) will catch new inner elements added for typography control. Narrow to direct child (`.card > span`) or explicit class BEFORE adding nested spans. Common symptom: "title turned red" right after adding `titleLines`.
+16. Never write literal HTML or Markdown markup in user-facing body data. `"<br>"`, `"<ruby>"`, `` "`code`" `` are escaped and render as visible characters that look like tiny marks above CJK glyphs. Replace with plain Japanese ("改行タグ", "ふりがな") or wrap in semantic `<code>` markup.
 
 ## Browser Compatibility
 
@@ -279,6 +281,54 @@ Mark inline English with `lang="en"` for proper hyphenation. `&shy;` (soft hyphe
 
 Verify protected and suggested-break phrases still fit at the narrowest supported width. If not, shorten the copy.
 
+## Data-Controlled Line Breaks for Cards
+
+When repeated cards (grid items, FAQs, hero callouts) display titles from data, CSS auto-wrap with `auto-phrase` + `pretty` can still fail at narrow card widths, browsers without `auto-phrase`, or strings exceeding the per-card budget. Store explicit break points in data.
+
+### Data + render
+
+```ts
+type Card = {
+  title: string;
+  titleLines?: string[];
+};
+```
+
+```astro
+<strong>
+  {card.titleLines
+    ? card.titleLines.map((line) => <span class="title-line">{line}</span>)
+    : card.title}
+</strong>
+```
+
+```css
+.title-line {
+  display: block;
+  overflow-wrap: normal;
+  word-break: auto-phrase;
+  line-break: strict;
+  text-wrap: pretty;
+}
+```
+
+Do NOT add `word-break: keep-all` to `.title-line` — if a line still exceeds the container, it should gracefully wrap rather than overflow the card.
+
+## Card Density Budget
+
+Before choosing a hero font-size for a card grid, calculate the per-line character budget:
+
+```
+content_width = (container_width − gap × (columns − 1)) / columns − card_padding × 2
+budget_chars  = content_width / font_size_px
+```
+
+5-up grid in 1280px container with 18px gaps + 22px card padding: content_width = 197px. At 1.55rem (24.8px) = ~7 char budget. At 1.3rem (20.8px) = ~9 char budget.
+
+If the longest planned line exceeds the budget: (1) reduce font with `clamp(min, vw-based, max)`, (2) split into more `titleLines` parts, (3) reduce column count, or (4) shorten copy.
+
+A 1.55rem hero in a 5-up grid produces ~7-char budget. Any longer line WILL wrap and may orphan single characters on browsers without `auto-phrase`. Pick font-size to match the longest line you actually have.
+
 ## Automation Layer (BudouX)
 
 When a CMS produces thousands of headlines and per-headline `<wbr>` editing is impractical, BudouX (~20KB by Google) inserts `<wbr>` at natural phrase boundaries automatically. Adobe uses it in production with a custom retrained model.
@@ -308,6 +358,9 @@ Prefer native `word-break: auto-phrase` (Chrome 119+) over BudouX when supported
 - Display font weight not synthesized
 - Tables: no single-character orphans on the last line of a cell, headers not breaking mid-word, longest cell in each column fits the assigned `<col>` width
 - Tables on narrow viewports: horizontal scroll appears below `min-width`, layout does not break out of its container
+- Card grids: longest `titleLines` line fits the content_width / font_size_px budget at the narrowest desktop viewport
+- Card title color / weight: no leakage from old `.card span` rules to new `.title-line` spans
+- Body data: no literal `<br>`, `<ruby>`, backticks in user-facing strings
 
 ## Output Format
 

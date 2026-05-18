@@ -113,6 +113,8 @@ h1, h2, h3, h4 {
 12. **Decide editorial strictness before writing CSS.** JLREQ defines three line-break strictness levels: newspaper (loose), magazine (mid), and general book (strict). The choice belongs to the editorial policy of the surface, not to the CSS. Narrow news columns may break loose; brand sites, dashboards, and long-form pages should stay strict. The CSS `line-break: loose / normal / strict` maps to this — make the policy call first, then write the values.
 13. **Treat `<wbr>` as the inverse of `nowrap`.** `white-space: nowrap` says "never break here." `<wbr>` says "you may break here if needed." Use them together: `nowrap` protects quoted phrases and product names; `<wbr>` is a safety valve for long compound katakana, long URLs, and brand-name + suffix combinations. Unlike `<br>`, `<wbr>` is invisible until the line actually needs a break.
 14. **Wrap inline English in `<span lang="en">` and let `hyphens: auto` handle it.** A long English word in Japanese body text (e.g., "extraordinary") can overflow narrow cards. Mark the English span with `lang="en"`, apply `:lang(en) { hyphens: auto }` globally, and optionally insert `&shy;` at preferred break points. This avoids `word-break: break-all` while still keeping the layout intact.
+15. **Audit outer CSS selectors when extending a card template.** Pre-existing broad descendant selectors (`.card span`, `.hero p`) will catch new inner elements you add for line-break control. Narrow them to direct child (`.card > span`) or explicit class (`.card .eyebrow`) BEFORE adding nested spans for line control. This prevents accidental color, font-weight, or letter-spacing leakage to your new spans. The bug usually appears as "title turned red" or "weight got bold" right after adding `titleLines`.
+16. **Never write literal HTML or Markdown markup in user-facing body data.** Strings like `"<br>"`, `"<ruby>"`, `` "`code`" `` are escaped by JSX/Astro interpolation and render as visible `<br>`, `` `code` `` characters in the page. In Japanese body at small sizes, the angle brackets and backticks appear as tiny marks above CJK glyphs and read as visual noise (resembling 圏点 or 濁点 marks). Either replace with plain Japanese ("改行タグ", "ふりがな"), or use semantic `<code>` markup styled with monospace + background.
 
 ## Browser Compatibility
 
@@ -415,6 +417,101 @@ Marking inline English with `lang="en"` enables proper hyphenation for that span
 
 Verify protected and suggested-break phrases still fit at the narrowest supported width. If they do not, shorten the copy or reduce font size — do not force overflow.
 
+## Data-Controlled Line Breaks for Card Templates
+
+When repeated cards (grid items, FAQ lists, hero callouts) display titles from data, CSS auto-wrap with `auto-phrase` + `pretty` can still fail at:
+
+- Narrow card widths (5-up, 6-up grids)
+- Browsers without `auto-phrase` support (Safari, Firefox)
+- Strings that exceed the per-card character budget
+
+The fallback: store explicit break points in the data, render as block-level child elements.
+
+### Data shape
+
+```ts
+type Card = {
+  title: string;             // fallback for SSR and when no editorial breaks set
+  titleLines?: string[];     // optional explicit line breaks
+};
+```
+
+### Render
+
+```astro
+<strong>
+  {
+    card.titleLines
+      ? card.titleLines.map((line) => <span class="title-line">{line}</span>)
+      : card.title
+  }
+</strong>
+```
+
+### Per-line CSS
+
+```css
+.title-line {
+  display: block;
+  overflow-wrap: normal;
+  word-break: auto-phrase;
+  line-break: strict;
+  text-wrap: pretty;
+}
+```
+
+Do NOT add `word-break: keep-all` to `.title-line`. If a line still exceeds the container, it should gracefully wrap with `auto-phrase` + `pretty` rather than overflow the card border. The principle holds: protect the intended break with the block-level span, but keep a fallback inside each line.
+
+### When to use
+
+- Hero taglines in grid cards (each card has its own short tagline)
+- Font specimens with curated short sample text
+- Editorial headlines where break position is part of the message
+- Marketing CTAs where the line break creates visual rhythm
+
+Not for body paragraphs, long lists, or user-generated content — those should use CSS auto-wrap.
+
+## Card Density Budget
+
+Before choosing a hero font-size for a card grid, calculate the per-line character budget. Skipping this step is why a `1.55rem` title looks fine in design tools and breaks at "い。" alone in production.
+
+### Formula
+
+```
+content_width = (container_width − gap × (columns − 1)) / columns − card_padding × 2
+budget_chars  = content_width / font_size_px
+```
+
+`font_size_px` is `rem × 16`. For Japanese full-width characters, assume 1 char ≈ font-size in pixels. Letter-spacing adds ~2% per pair, usually negligible at this granularity.
+
+### Worked example (5-up grid)
+
+- Container: 1280px (capped main width)
+- Gap: 18px, columns: 5
+- Card padding: 22px each side
+- Content width: (1280 − 72) / 5 − 44 = **197px**
+
+| Font size | Budget chars |
+|---|---:|
+| 1.55rem (24.8px) | ~7 |
+| 1.4rem (22.4px) | ~8 |
+| 1.3rem (20.8px) | ~9 |
+| 1.15rem (18.4px) | ~10 |
+
+If the longest line in `titleLines` exceeds the budget, choose one:
+
+1. **Reduce font-size with `clamp()`** so it scales at narrower viewports.
+   ```css
+   .card-title { font-size: clamp(1.2rem, 1.7vw, 1.5rem); }
+   ```
+2. **Split into more `titleLines` parts.** A 10-char string at 1.3rem (~9 char budget) can split into 4 + 6.
+3. **Reduce column count.** 5-up → 4-up gives ~50% more content width per card.
+4. **Shorten the copy.** Cheapest fix, but constrains brand voice.
+
+### Don't fight the math
+
+A 1.55rem hero font in a 5-up grid produces ~7-character budget. Any title line longer than 7 characters WILL wrap. On browsers without `auto-phrase`, it will produce single-character orphans. Pick font-size to match the longest line you actually have, then validate at the design's narrowest desktop viewport (typically 1280px or 1024px).
+
 ## Automation Layer (BudouX)
 
 When a CMS produces thousands of headlines and reviewing each one manually is impractical, BudouX is a lightweight (~20KB) phrase-segmentation library by Google that inserts `<wbr>` automatically at natural phrase boundaries. Adobe uses BudouX in production with a custom retrained model for honorifics and long compound katakana that the default model handles poorly.
@@ -457,6 +554,9 @@ After typography changes, verify:
 - Font weight not synthesized — display fonts show their actual weight, not browser-faked bold
 - Table cells: no single-character orphans on the last line, headers not breaking mid-word, longest cell in each column fits the assigned `<colgroup>` width
 - Tables narrower than viewport: horizontal scroll appears below `min-width`, layout does not break out of its container
+- Card grids: longest planned `titleLines` line fits the calculated content_width / font_size_px budget at the narrowest desktop viewport
+- Card title color / weight: matches the design after adding nested `.title-line` spans — verify no descendant selector leakage from older `.card span` / `.hero p` rules
+- Body data audit: no literal `<br>`, `<ruby>`, backticks, or other HTML/Markdown tokens in user-facing strings — those render as visible characters and create noise above CJK glyphs
 
 For repeated list cards with 1–2 lines of Japanese, prefer vertical centering:
 
