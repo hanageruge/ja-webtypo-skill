@@ -74,6 +74,7 @@ h1, h2, h3, h4 {
 8. Check card interiors: text fits inside the border with comfortable padding. Watch for `margin-top: auto` accidentally bottom-aligning titles.
 9. When a heading gains extra lines, first widen the text column or change grid ratios — before inserting `<br>` or shrinking type.
 10. Never use `word-break: break-all` for normal Japanese body or headings. Remove manual `<br>` and `&nbsp;` hacks.
+11. Override `overflow-wrap: anywhere` inside table cells. Body-level `anywhere` inherits into `td` / `th` and causes single-character orphans ("コー / ド"). Pair `overflow-wrap: normal` on cells with `table-layout: fixed` + `<colgroup>` widths. See the "Table Cells" section.
 
 ## Browser Compatibility
 
@@ -140,8 +141,90 @@ For hero headings, use `clamp()` and verify at 360–390px:
     word-break: auto-phrase;
     line-break: strict;
   }
+  .text-ja-table-cell {
+    overflow-wrap: normal;
+    word-break: auto-phrase;
+    line-break: strict;
+    text-wrap: pretty;
+  }
+  .text-ja-table-head {
+    white-space: nowrap;
+    word-break: keep-all;
+    line-break: strict;
+  }
 }
 ```
+
+## Table Cells
+
+Tables fail because `overflow-wrap: anywhere` on `body` inherits into `td` / `th`, producing single-character orphans like "コー / ド". Default `table-layout: auto` also lets a long-text column squeeze short columns flat, breaking headers like "アプリ同梱" into "アプリ同 / 梱".
+
+The four-part contract:
+
+```css
+.table-ja-wrap {
+  overflow-x: auto;           /* horizontal scroll on narrow viewports */
+  border: 1px solid #d6d3ce;
+}
+
+.table-ja {
+  width: 100%;
+  min-width: 880px;
+  table-layout: fixed;        /* respect <colgroup> widths */
+  border-collapse: collapse;
+}
+
+.table-ja th,
+.table-ja td {
+  vertical-align: top;
+  padding: 12px 14px;
+  overflow-wrap: normal;      /* breaks body's inherited "anywhere" */
+  word-break: auto-phrase;
+  line-break: strict;
+  text-wrap: pretty;
+}
+
+.table-ja th {
+  white-space: nowrap;        /* short headers must not break */
+  word-break: keep-all;
+  line-break: strict;
+}
+```
+
+Set per-column widths with `<colgroup>`:
+
+```html
+<div class="table-ja-wrap">
+  <table class="table-ja">
+    <colgroup>
+      <col style="width: 14%">
+      <col style="width: 17%">
+      <col style="width: 16%">
+      <col style="width: 13%">
+      <col style="width: 11%">
+      <col style="width: 29%">
+    </colgroup>
+    <thead>…</thead>
+    <tbody>…</tbody>
+  </table>
+</div>
+```
+
+Column sizing rules of thumb (at ~0.94rem, ~17px per Japanese char, ~9px per Latin char):
+
+- Long description columns → 25–35%
+- Mixed Latin + 8–10 CJK chars (e.g., "Adobe埋め込みコード") → 15–17%
+- Short Japanese label + symbol (e.g., "○ 条件確認") → 11–14%
+- Single symbol cells (○ / × / △) → 9–11%
+
+Diagnostic shortcuts:
+
+- "コー / ド" — single-char orphan → add `overflow-wrap: normal` on cells
+- "アプリ同 / 梱" — header broken mid-word → add `white-space: nowrap` on `th`
+- "Adobe埋め込みコー / ド" after wrap fixes → column too narrow, widen `<col>` or shorten cell text
+- Long-description column squeezing others → add `table-layout: fixed` + `<colgroup>`
+
+Never use `<br>` inside cells to fake the layout. The break must come from CSS so the table adapts to viewport changes.
 
 ## Manual Phrase Protection
 
@@ -174,6 +257,8 @@ Verify the protected phrase fits at the narrowest supported width — otherwise 
 - Form rows: label column not too wide
 - Two-column sections: text column not too narrow vs. adjacent image
 - Display font weight not synthesized
+- Tables: no single-character orphans on the last line of a cell, headers not breaking mid-word, longest cell in each column fits the assigned `<col>` width
+- Tables on narrow viewports: horizontal scroll appears below `min-width`, layout does not break out of its container
 
 ## Output Format
 
