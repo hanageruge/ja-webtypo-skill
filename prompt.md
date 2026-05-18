@@ -149,9 +149,9 @@ For hero copy and CTAs, wrap key phrases in nowrap spans when CSS still wraps aw
 
 ```jsx
 <h1>
-  AIに任せても、
-  <span className="nowrap-desktop">「それっぽいだけ」で</span>
-  終わらせない。
+  シンプルに、
+  <span className="nowrap-desktop">「もっと使いやすく」</span>
+  進化させる。
 </h1>
 ```
 

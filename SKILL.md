@@ -241,9 +241,9 @@ CSS cannot infer phrase boundaries. For hero copy, campaign headlines, and impor
 
 ```jsx
 <h1>
-  AIに任せても、
-  <span className="nowrap-desktop">「それっぽいだけ」で</span>
-  終わらせない。
+  シンプルに、
+  <span className="nowrap-desktop">「もっと使いやすく」</span>
+  進化させる。
 </h1>
 ```
 
