@@ -110,6 +110,9 @@ h1, h2, h3, h4 {
 9. **When a heading gains extra lines,** first widen the text column, change grid ratios, reduce column gaps, or narrow the adjacent media — before inserting `<br>` or shrinking the type.
 10. **Never use `word-break: break-all`** for normal Japanese body or headings — it splits inside words. Reserve for technical long-token containers only. Remove manual `<br>` / `&nbsp;` hacks that fight the layout.
 11. **Override `overflow-wrap: anywhere` inside table cells.** Body-level `anywhere` inherits into `td` / `th` and produces single-character orphans like "コー / ド". Pair `overflow-wrap: normal` on cells with `table-layout: fixed` + `<colgroup>` widths. See the "Table Cells" section.
+12. **Decide editorial strictness before writing CSS.** JLREQ defines three line-break strictness levels: newspaper (loose), magazine (mid), and general book (strict). The choice belongs to the editorial policy of the surface, not to the CSS. Narrow news columns may break loose; brand sites, dashboards, and long-form pages should stay strict. The CSS `line-break: loose / normal / strict` maps to this — make the policy call first, then write the values.
+13. **Treat `<wbr>` as the inverse of `nowrap`.** `white-space: nowrap` says "never break here." `<wbr>` says "you may break here if needed." Use them together: `nowrap` protects quoted phrases and product names; `<wbr>` is a safety valve for long compound katakana, long URLs, and brand-name + suffix combinations. Unlike `<br>`, `<wbr>` is invisible until the line actually needs a break.
+14. **Wrap inline English in `<span lang="en">` and let `hyphens: auto` handle it.** A long English word in Japanese body text (e.g., "extraordinary") can overflow narrow cards. Mark the English span with `lang="en"`, apply `:lang(en) { hyphens: auto }` globally, and optionally insert `&shy;` at preferred break points. This avoids `word-break: break-all` while still keeping the layout intact.
 
 ## Browser Compatibility
 
@@ -119,6 +122,7 @@ h1, h2, h3, h4 {
 | `word-break: auto-phrase` | Chrome 119+, Edge 119+ | Always write `word-break: normal;` immediately above as fallback |
 | `text-wrap: balance` | Chrome 114+, Safari 17.5+, Firefox 121+ | Graceful degradation |
 | `text-wrap: pretty` | Chrome 117+, Safari 17.5+ | Falls back to normal wrapping |
+| `text-autospace` | Chrome 132+, Firefox 132+, Safari 18.4+ (Baseline 2025) | CJK / non-CJK auto-kerning. Wrap in `@supports` |
 | `text-spacing-trim: trim-start` | Chrome 123+ only | Future-proof CJK punctuation trimming |
 | `hanging-punctuation` | Safari only | Use with `first allow-end` for blockquotes |
 | `font-feature-settings: "palt"` | All modern browsers | CJK proportional kerning |
@@ -349,7 +353,14 @@ Never solve this by adding `<br>` inside cells. The break should come from CSS s
 
 ## Manual Phrase Protection
 
-CSS cannot infer phrase boundaries. For hero copy, campaign headlines, and important CTAs, protect key phrases with markup when automatic wrapping still fails:
+CSS cannot infer phrase boundaries. For hero copy, campaign headlines, and important CTAs, protect key phrases with markup when automatic wrapping still fails. There are two complementary tools:
+
+- **`white-space: nowrap` span** — "never break here"
+- **`<wbr>`** — "you may break here if needed"
+
+The core principle behind both: **don't make everything breakable. Increase the number of places where a break IS allowed, and protect the places where a break would hurt comprehension.**
+
+### Protect what must not break
 
 ```jsx
 <h1>
@@ -373,7 +384,59 @@ Use for:
 - Noun + particle pairs that break poorly (`日本の/技術` を避ける)
 - Numbers + units, prices, dates, durations
 
-Verify the protected phrase still fits at the narrowest supported width. If it does not, shorten the copy or reduce font size — do not force overflow.
+### Suggest where breaks are allowed
+
+```jsx
+<h1 lang="ja">
+  デジタルエクスペリエンス<wbr />プラットフォームを導入
+</h1>
+```
+
+`<wbr>` is invisible until the line actually needs a break — unlike `<br>`, which forces a line break unconditionally. Use it inside:
+
+- Long compound katakana ("デジタルエクスペリエンスプラットフォーム")
+- Brand name + Japanese suffix ("文字選びの標本室の<wbr>サービスサイト")
+- Long URLs displayed in text
+- Long English-Japanese hybrid technical terms
+
+### Inline English
+
+```jsx
+<p lang="ja">
+  予算は <span lang="en">extra&shy;ordinary</span> なほど膨れ上がった
+</p>
+```
+
+```css
+:lang(en) { hyphens: auto; }
+```
+
+Marking inline English with `lang="en"` enables proper hyphenation for that span. `&shy;` (soft hyphen) is an optional explicit break hint that only renders as a hyphen when the line actually breaks there.
+
+Verify protected and suggested-break phrases still fit at the narrowest supported width. If they do not, shorten the copy or reduce font size — do not force overflow.
+
+## Automation Layer (BudouX)
+
+When a CMS produces thousands of headlines and reviewing each one manually is impractical, BudouX is a lightweight (~20KB) phrase-segmentation library by Google that inserts `<wbr>` automatically at natural phrase boundaries. Adobe uses BudouX in production with a custom retrained model for honorifics and long compound katakana that the default model handles poorly.
+
+Use BudouX when:
+- Editorial team writes Japanese copy that flows into CMS templates
+- You cannot guarantee every author will hand-author break points
+- `word-break: auto-phrase` does not yet cover the user's browser matrix
+
+Do not use BudouX when:
+- The site has few hand-curated headlines and `<wbr>` editing is feasible
+- The Japanese copy is mostly product names and code where phrase segmentation gives wrong results
+- You need exact, designer-approved break positions on every line
+
+```html
+<script src="https://unpkg.com/budoux/bundle/budoux-ja.min.js"></script>
+<h2 lang="ja">
+  <budoux-ja>読みやすい日本語改行をCMSで自動化する</budoux-ja>
+</h2>
+```
+
+When `word-break: auto-phrase` is natively supported (Chrome 119+), prefer it over BudouX for the same content — fewer dependencies, no JS, lower runtime cost.
 
 ## Layout Checks
 

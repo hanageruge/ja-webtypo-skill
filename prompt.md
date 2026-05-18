@@ -75,12 +75,16 @@ h1, h2, h3, h4 {
 9. When a heading gains extra lines, first widen the text column or change grid ratios — before inserting `<br>` or shrinking type.
 10. Never use `word-break: break-all` for normal Japanese body or headings. Remove manual `<br>` and `&nbsp;` hacks.
 11. Override `overflow-wrap: anywhere` inside table cells. Body-level `anywhere` inherits into `td` / `th` and causes single-character orphans ("コー / ド"). Pair `overflow-wrap: normal` on cells with `table-layout: fixed` + `<colgroup>` widths. See the "Table Cells" section.
+12. Decide editorial strictness before writing CSS. JLREQ defines newspaper (loose), magazine (mid), and book (strict) line-break levels. Brand sites / dashboards / long-form pages should stay strict; narrow news columns may go loose. Map this to `line-break: loose / normal / strict`.
+13. Treat `<wbr>` as the inverse of `nowrap`. `nowrap` says "never break here." `<wbr>` says "you may break here if needed." Use them together: `nowrap` protects quoted phrases and product names; `<wbr>` is a safety valve for long compound katakana, long URLs, brand-name + suffix combinations. Unlike `<br>`, `<wbr>` is invisible until the line actually needs to break.
+14. Wrap inline English in `<span lang="en">` and let `hyphens: auto` handle it. Avoid `word-break: break-all` for long English words in Japanese body — mark them with `lang="en"`, apply `:lang(en) { hyphens: auto }`, optionally use `&shy;` at preferred break points.
 
 ## Browser Compatibility
 
 - `word-break: auto-phrase` — Chrome/Edge 119+ only. Always provide `word-break: normal;` fallback first.
 - `text-wrap: balance` — Chrome 114+, Safari 17.5+, Firefox 121+.
 - `text-wrap: pretty` — Chrome 117+, Safari 17.5+.
+- `text-autospace` — Chrome 132+, Firefox 132+, Safari 18.4+ (Baseline 2025). CJK / non-CJK auto-kerning. Wrap in `@supports`.
 - `text-spacing-trim: trim-start` — Chrome 123+ only (optional progressive enhancement).
 - `hanging-punctuation` — Safari only.
 
@@ -228,7 +232,9 @@ Never use `<br>` inside cells to fake the layout. The break must come from CSS s
 
 ## Manual Phrase Protection
 
-For hero copy and CTAs, wrap key phrases in nowrap spans when CSS still wraps awkwardly:
+CSS cannot infer phrase boundaries. Use two complementary tools — `white-space: nowrap` ("never break here") and `<wbr>` ("you may break here if needed"). Core principle: **don't make everything breakable. Increase the places where a break IS allowed, and protect the places where a break would hurt comprehension.**
+
+### Protect what must not break
 
 ```jsx
 <h1>
@@ -245,7 +251,50 @@ For hero copy and CTAs, wrap key phrases in nowrap spans when CSS still wraps aw
 }
 ```
 
-Verify the protected phrase fits at the narrowest supported width — otherwise shorten the copy.
+Use for: quoted phrases (`「〜」で`), product / service names, short CTAs, noun+particle pairs that break poorly (`日本の/技術` を避ける), numbers + units / prices / dates.
+
+### Suggest where breaks are allowed
+
+```jsx
+<h1 lang="ja">
+  デジタルエクスペリエンス<wbr />プラットフォームを導入
+</h1>
+```
+
+`<wbr>` is invisible until the line actually needs to break — unlike `<br>` which forces a break unconditionally. Use inside long compound katakana, brand + Japanese suffix, long URLs, hybrid technical terms.
+
+### Inline English
+
+```jsx
+<p lang="ja">
+  予算は <span lang="en">extra&shy;ordinary</span> なほど膨れ上がった
+</p>
+```
+
+```css
+:lang(en) { hyphens: auto; }
+```
+
+Mark inline English with `lang="en"` for proper hyphenation. `&shy;` (soft hyphen) is an optional break hint that only renders as a hyphen when the line actually breaks there.
+
+Verify protected and suggested-break phrases still fit at the narrowest supported width. If not, shorten the copy.
+
+## Automation Layer (BudouX)
+
+When a CMS produces thousands of headlines and per-headline `<wbr>` editing is impractical, BudouX (~20KB by Google) inserts `<wbr>` at natural phrase boundaries automatically. Adobe uses it in production with a custom retrained model.
+
+Use BudouX when: editorial team writes copy into CMS templates, you cannot guarantee hand-authored break points, `word-break: auto-phrase` does not yet cover your browser matrix.
+
+Skip BudouX when: few hand-curated headlines and `<wbr>` editing is feasible, copy is mostly product names / code where phrase segmentation gives wrong results, you need designer-approved exact break positions.
+
+```html
+<script src="https://unpkg.com/budoux/bundle/budoux-ja.min.js"></script>
+<h2 lang="ja">
+  <budoux-ja>読みやすい日本語改行をCMSで自動化する</budoux-ja>
+</h2>
+```
+
+Prefer native `word-break: auto-phrase` (Chrome 119+) over BudouX when supported — no JS, no dependency.
 
 ## What to Check After Editing
 
