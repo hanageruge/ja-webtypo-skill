@@ -44,87 +44,12 @@ LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイ
 
 ## インストール
 
-### Claude Code
+利用しているAIアシスタントの**スキル / プロンプト読み込み方法**に従って、次のいずれかのファイルを設定してください。
 
-#### 方法 A: ユーザーグローバルに symlink（推奨）
+- **Claude Code** → `SKILL.md`（frontmatter付き、そのまま `skills` ディレクトリに配置）
+- **その他のAIツール**（Cursor / GitHub Copilot / Codex CLI / ChatGPT / Cline / Gemini など）→ `prompt.md` の内容を、各ツールのカスタム指示・ルールファイル・システムプロンプト等に貼り付け
 
-```bash
-git clone https://github.com/hanageruge/ja-webtypo-skill.git ~/ja-webtypo-skill
-mkdir -p ~/.claude/skills
-ln -s ~/ja-webtypo-skill ~/.claude/skills/ja-webtypo-skill
-```
-
-Claude Code を再起動すると、スキル一覧に `ja-webtypo-skill` が出ます。
-
-#### 方法 B: プロジェクトローカルに配置
-
-```bash
-cd your-project
-mkdir -p .claude/skills
-git clone https://github.com/hanageruge/ja-webtypo-skill.git .claude/skills/ja-webtypo-skill
-```
-
-#### 方法 C: SKILL.md を単体で配置
-
-```bash
-mkdir -p ~/.claude/skills/ja-webtypo-skill
-curl -o ~/.claude/skills/ja-webtypo-skill/SKILL.md \
-  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/SKILL.md
-```
-
----
-
-### Cursor
-
-`.cursorrules` または `.cursor/rules/japanese-typography.mdc` に `prompt.md` の内容を貼り付け:
-
-```bash
-curl -o .cursorrules \
-  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
-```
-
----
-
-### GitHub Copilot
-
-`.github/copilot-instructions.md` に追記:
-
-```bash
-mkdir -p .github
-curl -o .github/copilot-instructions.md \
-  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
-```
-
----
-
-### Codex CLI
-
-リポジトリのルートに `AGENTS.md` を作成、または既存の `AGENTS.md` に `prompt.md` の内容を追記してください。
-
----
-
-### ChatGPT (Custom GPT / Projects)
-
-1. `prompt.md` の中身をコピー
-2. Custom GPT の **Instructions** に貼り付け
-3. もしくは Projects の **System Prompt** に貼り付け
-
----
-
-### Cline / Roo Code
-
-ワークスペースルートに `.clinerules` を作成:
-
-```bash
-curl -o .clinerules \
-  https://raw.githubusercontent.com/hanageruge/ja-webtypo-skill/main/prompt.md
-```
-
----
-
-### Gemini (Gems)
-
-Gem の **Instructions** に `prompt.md` の内容を貼り付け。
+各AIアシスタントの設定方法・ディレクトリ構成は頻繁に変わるため、最新の方法は**各ツール公式ドキュメント**を参照してください。
 
 ---
 
