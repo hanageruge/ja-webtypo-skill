@@ -69,7 +69,7 @@ h1, h2, h3, h4 {
 2. Use `word-break: auto-phrase` with `word-break: normal` as fallback. `auto-phrase` is a **Blink-engine feature** — desktop/Android Chrome & Edge 119+ only. It does NOT run on any iOS browser (iOS Chrome/Edge/Firefox are all WebKit) or on Firefox (Gecko). Judge by rendering engine, not browser brand.
 3. Use `text-wrap: balance` only on hero/section headings, not on repeated card titles or ordinary lead paragraphs. Use `text-wrap: pretty` there. Put `text-wrap: pretty` on card body / description text too — `word-break: auto-phrase` is Chromium-only, so without it a card description orphans its trailing character (e.g. "す。" alone) on iOS Safari / Firefox.
 4. Keep `overflow-wrap: anywhere` on body text to prevent URL/long-token overflow. Override with `normal` on headings.
-5. Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons — never globally on `button`. Card-like buttons and option cards must wrap.
+5. Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons — never globally on `button`. Card-like buttons and option cards must wrap. (Exception: `keep-all` is also correct on BudouX-wrapped text, where the `<wbr>` elements supply the break points.)
 6. Set `letter-spacing: 0.02em` and `line-height: 1.75` for Japanese body; `0.01em` and `1.4` for headings. WCAG requires line-height ≥ 1.5; Japanese standard is 1.7+.
 7. Set explicit `font-weight` for display fonts to avoid browser-synthesized bold crushing CJK glyphs.
 8. Check card interiors: text fits inside the border with comfortable padding. Watch for `margin-top: auto` accidentally bottom-aligning titles.
@@ -343,6 +343,7 @@ A 1.55rem hero in a 5-up grid produces ~7-char budget. Any longer line WILL wrap
 
 - Apply at **build time** / server-side (bakes `<wbr>` into HTML, zero runtime JS). Avoid the `<budoux-ja>` runtime web component on static sites.
 - Output **`<wbr>`** real elements, never zero-width-space (keeps copy-paste / search clean). Render via `set:html` / `dangerouslySetInnerHTML`; never store `<wbr>` HTML in the data layer.
+- **The wrapped element also needs `word-break: keep-all` + `overflow-wrap: anywhere`.** `<wbr>` only adds break opportunities; without `keep-all`, Japanese still breaks mid-word everywhere (its default) and `<wbr>` does nothing on WebKit/Gecko. `keep-all` makes the text break ONLY at the `<wbr>` points; `anywhere` is the safety valve for an over-long phrase.
 
 ```js
 import { loadDefaultJapaneseParser } from "budoux";

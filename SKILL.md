@@ -104,7 +104,7 @@ h1, h2, h3, h4 {
 2. **Use `word-break: auto-phrase` with `word-break: normal` as fallback.** `auto-phrase` is a **Blink-engine feature** — desktop and Android Chrome / Edge 119+ only. It does **not** run on any iOS browser (iOS Chrome, Edge, and Firefox are all WebKit, not Blink) or on desktop Firefox (Gecko); those fall back to `normal`. Judge support by **rendering engine, not browser brand** — an iPhone "Chrome" is WebKit and will still break mid-word.
 3. **Use `text-wrap: balance` only on hero/section headings.** Avoid on repeated card titles, FAQ titles, or ordinary lead paragraphs — use `text-wrap: pretty` or normal wrapping there. Repeated cards with `balance` leave odd blank space on the right. **Put `text-wrap: pretty` on card body / description text too, not just card titles.** `word-break: auto-phrase` is Chromium-only, so without `pretty` a card description orphans its trailing character (e.g. "す。" alone on the last line) on iOS Safari and Firefox. `text-wrap: pretty` (Safari 17.5+, Firefox 121+) restores orphan protection there.
 4. **Keep `overflow-wrap: anywhere` on body text** to prevent URL/long-token overflow. Override with `normal` on headings.
-5. **Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons.** Card-like buttons, option cards, and quiz choices must be allowed to wrap inside their border. Never apply globally to `button`.
+5. **Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons.** Card-like buttons, option cards, and quiz choices must be allowed to wrap inside their border. Never apply globally to `button`. (Exception: `word-break: keep-all` is also correct on BudouX-wrapped text, where the inserted `<wbr>` elements supply the break points — see "Coverage Tiers".)
 6. **Set `letter-spacing: 0.02em` and `line-height: 1.75` for Japanese body.** Tighter values (0.01em / 1.4) for headings. WCAG requires line-height ≥ 1.5; Japanese standard is 1.7+.
 7. **Set explicit `font-weight` for Japanese display fonts.** Browser synthetic bold (when no real bold weight file exists) crushes CJK glyphs. Headings get `font-weight: 700` by default — for single-weight display fonts, override to `400` or the actual supported weight.
 8. **Check card interiors:** title, body, controls must fit within the visible border with comfortable padding. Watch for `margin-top: auto` accidentally bottom-aligning the title.
@@ -551,6 +551,17 @@ const parser = loadDefaultJapaneseParser();
 // framework's HTML injection (set:html / dangerouslySetInnerHTML).
 const html = parser.parse(text).map(escapeHtml).join("<wbr>");
 ```
+
+**Critical — the wrapped element also needs `word-break: keep-all`.** `<wbr>` only *adds* a break opportunity; it does not remove the default ones. Japanese with `word-break: normal` already breaks between almost any two characters, so `<wbr>` alone changes nothing — the text still breaks mid-word on WebKit/Gecko. The BudouX-wrapped element must carry:
+
+```css
+.budoux-wrapped {
+  word-break: keep-all;     /* break ONLY at <wbr>, not between every character */
+  overflow-wrap: anywhere;  /* safety valve if one phrase is still too long */
+}
+```
+
+Without `keep-all` the `<wbr>` is inert and the mid-word breaks remain. This is the one place `word-break: keep-all` belongs on body text — Rule 5's warning assumes no `<wbr>` break points exist; BudouX supplies them.
 
 Output **`<wbr>`** — a real, semantically inert HTML element. Never emit zero-width-space characters (they contaminate copy-paste and search), and never wrap every phrase in a `<span>` (that is what creates accessibility / SEO noise). Never store the `<wbr>` HTML back in your data layer; wrap at the render layer only (see Rule 16).
 
