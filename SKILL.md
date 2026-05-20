@@ -101,7 +101,7 @@ h1, h2, h3, h4 {
 ## Decision Rules
 
 1. **Use `line-break: strict`** for Japanese content. Punctuation, brackets, and small kana follow stricter CJK rules.
-2. **Use `word-break: auto-phrase` with `word-break: normal` as fallback.** `auto-phrase` is Chrome 119+ / Edge 119+ only; Firefox/Safari fall back to `normal`.
+2. **Use `word-break: auto-phrase` with `word-break: normal` as fallback.** `auto-phrase` is a **Blink-engine feature** — desktop and Android Chrome / Edge 119+ only. It does **not** run on any iOS browser (iOS Chrome, Edge, and Firefox are all WebKit, not Blink) or on desktop Firefox (Gecko); those fall back to `normal`. Judge support by **rendering engine, not browser brand** — an iPhone "Chrome" is WebKit and will still break mid-word.
 3. **Use `text-wrap: balance` only on hero/section headings.** Avoid on repeated card titles, FAQ titles, or ordinary lead paragraphs — use `text-wrap: pretty` or normal wrapping there. Repeated cards with `balance` leave odd blank space on the right. **Put `text-wrap: pretty` on card body / description text too, not just card titles.** `word-break: auto-phrase` is Chromium-only, so without `pretty` a card description orphans its trailing character (e.g. "す。" alone on the last line) on iOS Safari and Firefox. `text-wrap: pretty` (Safari 17.5+, Firefox 121+) restores orphan protection there.
 4. **Keep `overflow-wrap: anywhere` on body text** to prevent URL/long-token overflow. Override with `normal` on headings.
 5. **Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons.** Card-like buttons, option cards, and quiz choices must be allowed to wrap inside their border. Never apply globally to `button`.
@@ -122,7 +122,7 @@ h1, h2, h3, h4 {
 | Property | Coverage | Notes |
 |---|---|---|
 | `line-break: strict` | All modern browsers | Safe |
-| `word-break: auto-phrase` | Chrome 119+, Edge 119+ | Always write `word-break: normal;` immediately above as fallback |
+| `word-break: auto-phrase` | **Blink only** — desktop/Android Chrome & Edge 119+ | NOT iOS (every iOS browser is WebKit) and NOT Firefox (Gecko). Judge by engine, not brand. Always write `word-break: normal;` fallback above |
 | `text-wrap: balance` | Chrome 114+, Safari 17.5+, Firefox 121+ | Graceful degradation |
 | `text-wrap: pretty` | Chrome 117+, Safari 17.5+ | Falls back to normal wrapping |
 | `text-autospace` | Chrome 132+, Firefox 132+, Safari 18.4+ (Baseline 2025) | CJK / non-CJK auto-kerning. Wrap in `@supports` |
@@ -429,7 +429,7 @@ Verify protected and suggested-break phrases still fit at the narrowest supporte
 When repeated cards (grid items, FAQ lists, hero callouts) display titles from data, CSS auto-wrap with `auto-phrase` + `pretty` can still fail at:
 
 - Narrow card widths (5-up, 6-up grids)
-- Browsers without `auto-phrase` support (Safari, Firefox)
+- Browsers without `auto-phrase` support — WebKit (all iOS browsers, desktop Safari) and Gecko (Firefox)
 - Strings that exceed the per-card character budget
 
 The fallback: store explicit break points in the data, render as block-level child elements.
@@ -519,28 +519,55 @@ If the longest line in `titleLines` exceeds the budget, choose one:
 
 A 1.55rem hero font in a 5-up grid produces ~7-character budget. Any title line longer than 7 characters WILL wrap. On browsers without `auto-phrase`, it will produce single-character orphans. Pick font-size to match the longest line you actually have, then validate at the design's narrowest desktop viewport (typically 1280px or 1024px).
 
-## Automation Layer (BudouX)
+## Coverage Tiers: CSS baseline → BudouX
 
-When a CMS produces thousands of headlines and reviewing each one manually is impractical, BudouX is a lightweight (~20KB) phrase-segmentation library by Google that inserts `<wbr>` automatically at natural phrase boundaries. Adobe uses BudouX in production with a custom retrained model for honorifics and long compound katakana that the default model handles poorly.
+Phrase-aware Japanese line breaking has two tiers. Apply Tier 1 always; escalate to Tier 2 as a deliberate, user-facing decision.
 
-Use BudouX when:
-- Editorial team writes Japanese copy that flows into CMS templates
-- You cannot guarantee every author will hand-author break points
-- `word-break: auto-phrase` does not yet cover the user's browser matrix
+### Tier 1 — CSS baseline (always)
 
-Do not use BudouX when:
-- The site has few hand-curated headlines and `<wbr>` editing is feasible
-- The Japanese copy is mostly product names and code where phrase segmentation gives wrong results
-- You need exact, designer-approved break positions on every line
+The baseline CSS above (`word-break: auto-phrase`, `line-break: strict`, `text-wrap`, `palt`). Result by **rendering engine**:
 
-```html
-<script src="https://unpkg.com/budoux/bundle/budoux-ja.min.js"></script>
-<h2 lang="ja">
-  <budoux-ja>読みやすい日本語改行をCMSで自動化する</budoux-ja>
-</h2>
+- **Blink** (desktop & Android Chrome / Edge): `auto-phrase` works → fully phrase-aware breaking. Done.
+- **WebKit** (every iOS browser, desktop Safari) and **Gecko** (Firefox): `auto-phrase` is ignored. `text-wrap: balance / pretty` still prevents orphaned trailing characters, but lines can still break **mid-word** — "制作物" → "制作/物", "ライセンス" → "ラ/イセンス". Tier 1 does not fix this.
+
+Because every iOS browser is WebKit, the Tier-1 residual affects **all iPhone visitors** — on a Japan-facing site that is roughly half of mobile traffic, not an edge case.
+
+### Tier 2 — BudouX (escalate when the residual matters)
+
+BudouX is a lightweight (~20KB) phrase-segmentation library by Google — the same model behind `auto-phrase`. It inserts `<wbr>` break opportunities at phrase boundaries, so phrase-aware breaking works on **every engine**, WebKit and Gecko included.
+
+Escalating to Tier 2 is a **judgment call — always surface it to the user.** State the cost and the benefit and let them decide; never silently skip it, never silently add the dependency.
+
+- **Cost:** a build-time dependency; the HTML gains `<wbr>` elements; one more layer to account for when debugging a break.
+- **Benefit:** correct phrase breaking on iPhone and Firefox, not only Blink.
+
+**Apply BudouX at build time** (SSG) or server-side — it bakes `<wbr>` into the HTML with zero runtime JS and zero runtime cost. Avoid the `<budoux-ja>` runtime web component on static sites; reserve it for text that only exists client-side.
+
+```js
+// Build-time (Astro / Vite / Node). Construct the parser once, reuse it.
+import { loadDefaultJapaneseParser } from "budoux";
+const parser = loadDefaultJapaneseParser();
+// HTML-escape each segment, then join with <wbr>. Render the result via the
+// framework's HTML injection (set:html / dangerouslySetInnerHTML).
+const html = parser.parse(text).map(escapeHtml).join("<wbr>");
 ```
 
-When `word-break: auto-phrase` is natively supported (Chrome 119+), prefer it over BudouX for the same content — fewer dependencies, no JS, lower runtime cost.
+Output **`<wbr>`** — a real, semantically inert HTML element. Never emit zero-width-space characters (they contaminate copy-paste and search), and never wrap every phrase in a `<span>` (that is what creates accessibility / SEO noise). Never store the `<wbr>` HTML back in your data layer; wrap at the render layer only (see Rule 16).
+
+### Where to apply BudouX
+
+USE it on short, curated **display** copy:
+- hero / section headings, card titles, CTA text
+- short lead paragraphs, short card / feature descriptions
+- any important copy that breaks badly on mobile
+
+Do NOT use it on:
+- long-form body / blog article text, Q&A long comments
+- form input values, URLs, email addresses, phone numbers, product codes / IDs
+- price tables, admin-panel input fields
+- user-generated content
+
+**Proper nouns** — clinic names, personal names, product / service / medical names (e.g. "フォームソティックス・メディカル") — are where auto-segmentation most often guesses wrong. Do not trust BudouX (or `auto-phrase`) there: protect them by hand with `white-space: nowrap`, manual `<wbr>`, or `<br>` (see "Manual Phrase Protection"), and keep hand-authored breaks authoritative where they mix with BudouX output.
 
 ## Layout Checks
 
@@ -586,3 +613,4 @@ After editing, report:
 - Viewports checked, manual drag-check ranges covered
 - Any breakpoint added and the content failure that justified it
 - Remaining copy that may need shortening
+- **Tier-1 residual:** state explicitly that on WebKit (all iOS browsers, Safari) and Gecko (Firefox), `auto-phrase` does not run and mid-word breaks remain — raise the Tier-2 / BudouX decision for the user instead of claiming Japanese breaking is fully "fixed" when only Blink is covered

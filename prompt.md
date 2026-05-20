@@ -66,7 +66,7 @@ h1, h2, h3, h4 {
 ## Decision Rules
 
 1. Use `line-break: strict` for Japanese content.
-2. Use `word-break: auto-phrase` with `word-break: normal` as fallback (auto-phrase is Chrome 119+ / Edge 119+ only).
+2. Use `word-break: auto-phrase` with `word-break: normal` as fallback. `auto-phrase` is a **Blink-engine feature** — desktop/Android Chrome & Edge 119+ only. It does NOT run on any iOS browser (iOS Chrome/Edge/Firefox are all WebKit) or on Firefox (Gecko). Judge by rendering engine, not browser brand.
 3. Use `text-wrap: balance` only on hero/section headings, not on repeated card titles or ordinary lead paragraphs. Use `text-wrap: pretty` there. Put `text-wrap: pretty` on card body / description text too — `word-break: auto-phrase` is Chromium-only, so without it a card description orphans its trailing character (e.g. "す。" alone) on iOS Safari / Firefox.
 4. Keep `overflow-wrap: anywhere` on body text to prevent URL/long-token overflow. Override with `normal` on headings.
 5. Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons — never globally on `button`. Card-like buttons and option cards must wrap.
@@ -84,7 +84,7 @@ h1, h2, h3, h4 {
 
 ## Browser Compatibility
 
-- `word-break: auto-phrase` — Chrome/Edge 119+ only. Always provide `word-break: normal;` fallback first.
+- `word-break: auto-phrase` — **Blink engine only** (desktop/Android Chrome & Edge 119+). NOT iOS (every iOS browser is WebKit) and NOT Firefox (Gecko). Judge by engine, not brand. Always provide `word-break: normal;` fallback first.
 - `text-wrap: balance` — Chrome 114+, Safari 17.5+, Firefox 121+.
 - `text-wrap: pretty` — Chrome 117+, Safari 17.5+.
 - `text-autospace` — Chrome 132+, Firefox 132+, Safari 18.4+ (Baseline 2025). CJK / non-CJK auto-kerning. Wrap in `@supports`.
@@ -335,22 +335,22 @@ If the longest planned line exceeds the budget: (1) reduce font with `clamp(min,
 
 A 1.55rem hero in a 5-up grid produces ~7-char budget. Any longer line WILL wrap and may orphan single characters on browsers without `auto-phrase`. Pick font-size to match the longest line you actually have.
 
-## Automation Layer (BudouX)
+## Coverage Tiers: CSS baseline → BudouX
 
-When a CMS produces thousands of headlines and per-headline `<wbr>` editing is impractical, BudouX (~20KB by Google) inserts `<wbr>` at natural phrase boundaries automatically. Adobe uses it in production with a custom retrained model.
+**Tier 1 — CSS baseline (always).** The baseline CSS above. On Blink (desktop/Android Chrome & Edge) `auto-phrase` works → fully phrase-aware. On WebKit (all iOS browsers, desktop Safari) and Gecko (Firefox) `auto-phrase` is ignored: `text-wrap` still prevents orphans, but lines can still break **mid-word** ("制作物"→"制作/物", "ライセンス"→"ラ/イセンス"). Since every iOS browser is WebKit, this residual hits all iPhone visitors.
 
-Use BudouX when: editorial team writes copy into CMS templates, you cannot guarantee hand-authored break points, `word-break: auto-phrase` does not yet cover your browser matrix.
+**Tier 2 — BudouX (escalate when the residual matters).** BudouX (~20KB by Google, the model behind `auto-phrase`) inserts `<wbr>` at phrase boundaries → phrase-aware breaking on every engine. Escalating is a **judgment call — always surface it to the user**; never silently skip, never silently add the dependency.
 
-Skip BudouX when: few hand-curated headlines and `<wbr>` editing is feasible, copy is mostly product names / code where phrase segmentation gives wrong results, you need designer-approved exact break positions.
+- Apply at **build time** / server-side (bakes `<wbr>` into HTML, zero runtime JS). Avoid the `<budoux-ja>` runtime web component on static sites.
+- Output **`<wbr>`** real elements, never zero-width-space (keeps copy-paste / search clean). Render via `set:html` / `dangerouslySetInnerHTML`; never store `<wbr>` HTML in the data layer.
 
-```html
-<script src="https://unpkg.com/budoux/bundle/budoux-ja.min.js"></script>
-<h2 lang="ja">
-  <budoux-ja>読みやすい日本語改行をCMSで自動化する</budoux-ja>
-</h2>
+```js
+import { loadDefaultJapaneseParser } from "budoux";
+const parser = loadDefaultJapaneseParser();
+const html = parser.parse(text).map(escapeHtml).join("<wbr>");
 ```
 
-Prefer native `word-break: auto-phrase` (Chrome 119+) over BudouX when supported — no JS, no dependency.
+**Where to apply BudouX** — short curated display copy: headings, card titles, CTA, short leads, short card / feature descriptions, important mobile copy. **Do NOT** apply to: long-form / blog body, Q&A long comments, form inputs, URLs, emails, phone numbers, product codes, price tables, admin inputs, user-generated content. Proper nouns (clinic / person / product / service / medical names) are where auto-segmentation guesses wrong — hand-protect them with `nowrap` / manual `<wbr>` / `<br>` instead.
 
 ## What to Check After Editing
 
@@ -379,3 +379,4 @@ After editing, report:
 - Viewports checked
 - Any breakpoint added and the content failure that justified it
 - Remaining copy that may need shortening
+- Tier-1 residual: state that on WebKit (all iOS browsers, Safari) and Gecko (Firefox), `auto-phrase` does not run and mid-word breaks remain — raise the Tier-2 / BudouX decision rather than claiming breaking is fully fixed
