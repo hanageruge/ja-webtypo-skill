@@ -59,6 +59,7 @@ h1, h2, h3, h4 {
   word-break: normal;
   word-break: auto-phrase;
   line-break: strict;
+  text-wrap: pretty;
 }
 ```
 
@@ -66,7 +67,7 @@ h1, h2, h3, h4 {
 
 1. Use `line-break: strict` for Japanese content.
 2. Use `word-break: auto-phrase` with `word-break: normal` as fallback (auto-phrase is Chrome 119+ / Edge 119+ only).
-3. Use `text-wrap: balance` only on hero/section headings, not on repeated card titles or ordinary lead paragraphs. Use `text-wrap: pretty` or normal wrapping there.
+3. Use `text-wrap: balance` only on hero/section headings, not on repeated card titles or ordinary lead paragraphs. Use `text-wrap: pretty` there. Put `text-wrap: pretty` on card body / description text too — `word-break: auto-phrase` is Chromium-only, so without it a card description orphans its trailing character (e.g. "す。" alone) on iOS Safari / Firefox.
 4. Keep `overflow-wrap: anywhere` on body text to prevent URL/long-token overflow. Override with `normal` on headings.
 5. Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons — never globally on `button`. Card-like buttons and option cards must wrap.
 6. Set `letter-spacing: 0.02em` and `line-height: 1.75` for Japanese body; `0.01em` and `1.4` for headings. WCAG requires line-height ≥ 1.5; Japanese standard is 1.7+.
@@ -146,6 +147,7 @@ For hero headings, use `clamp()` and verify at 360–390px:
     word-break: normal;
     word-break: auto-phrase;
     line-break: strict;
+    text-wrap: pretty;
   }
   .text-ja-table-cell {
     overflow-wrap: normal;
@@ -356,6 +358,7 @@ Prefer native `word-break: auto-phrase` (Chrome 119+) over BudouX when supported
 - Punctuation not at line head
 - No horizontal scroll
 - Text fits inside card borders without clipping
+- Card descriptions: trailing character not orphaned on the last line — check iOS Safari / Firefox (no `auto-phrase`; only `text-wrap: pretty` guards it)
 - `margin-top: auto` not unintentionally bottom-aligning card content
 - Form rows: label column not too wide
 - Two-column sections: text column not too narrow vs. adjacent image

@@ -94,6 +94,7 @@ h1, h2, h3, h4 {
   word-break: normal;
   word-break: auto-phrase;
   line-break: strict;
+  text-wrap: pretty;                 /* orphan guard where auto-phrase is unsupported */
 }
 ```
 
@@ -101,7 +102,7 @@ h1, h2, h3, h4 {
 
 1. **Use `line-break: strict`** for Japanese content. Punctuation, brackets, and small kana follow stricter CJK rules.
 2. **Use `word-break: auto-phrase` with `word-break: normal` as fallback.** `auto-phrase` is Chrome 119+ / Edge 119+ only; Firefox/Safari fall back to `normal`.
-3. **Use `text-wrap: balance` only on hero/section headings.** Avoid on repeated card titles, FAQ titles, or ordinary lead paragraphs — use `text-wrap: pretty` or normal wrapping there. Repeated cards with `balance` leave odd blank space on the right.
+3. **Use `text-wrap: balance` only on hero/section headings.** Avoid on repeated card titles, FAQ titles, or ordinary lead paragraphs — use `text-wrap: pretty` or normal wrapping there. Repeated cards with `balance` leave odd blank space on the right. **Put `text-wrap: pretty` on card body / description text too, not just card titles.** `word-break: auto-phrase` is Chromium-only, so without `pretty` a card description orphans its trailing character (e.g. "す。" alone on the last line) on iOS Safari and Firefox. `text-wrap: pretty` (Safari 17.5+, Firefox 121+) restores orphan protection there.
 4. **Keep `overflow-wrap: anywhere` on body text** to prevent URL/long-token overflow. Override with `normal` on headings.
 5. **Use `white-space: nowrap` and `word-break: keep-all` only for compact CTA buttons.** Card-like buttons, option cards, and quiz choices must be allowed to wrap inside their border. Never apply globally to `button`.
 6. **Set `letter-spacing: 0.02em` and `line-height: 1.75` for Japanese body.** Tighter values (0.01em / 1.4) for headings. WCAG requires line-height ≥ 1.5; Japanese standard is 1.7+.
@@ -226,6 +227,7 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     word-break: normal;
     word-break: auto-phrase;
     line-break: strict;
+    text-wrap: pretty;
   }
 }
 ```
@@ -556,6 +558,7 @@ After typography changes, verify:
 - Two-column LP sections: text column not too narrow vs. adjacent image
 - Button text not awkwardly two-line (unless intentional card-button)
 - Card titles not splitting particles, quoted phrases, product names, or numbers + units
+- Card descriptions: trailing character not orphaned on the last line — check iOS Safari / Firefox, where `auto-phrase` is unavailable and only `text-wrap: pretty` guards the orphan
 - Font weight not synthesized — display fonts show their actual weight, not browser-faked bold
 - Table cells: no single-character orphans on the last line, headers not breaking mid-word, longest cell in each column fits the assigned `<colgroup>` width
 - Tables narrower than viewport: horizontal scroll appears below `min-width`, layout does not break out of its container
