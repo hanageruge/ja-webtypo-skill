@@ -50,7 +50,8 @@ body {
   line-height: 1.75;                 /* Japanese standard (English is 1.5) */
 
   /* Mobile sizing */
-  -webkit-text-size-adjust: 100%;    /* Prevent iOS auto-zoom */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;    /* Prevent iOS auto-zoom (Safari needs the prefix) */
 
   /* Line breaking */
   overflow-wrap: anywhere;
@@ -61,7 +62,8 @@ body {
 
 h1, h2, h3, h4 {
   overflow-wrap: normal;
-  word-break: auto-phrase;
+  word-break: normal;                /* fallback — see Rule 2 */
+  word-break: auto-phrase;           /* progressive enhancement (Blink only) */
   line-break: strict;
   text-wrap: balance;
   letter-spacing: 0.01em;            /* Tighter for headings */
@@ -70,6 +72,7 @@ h1, h2, h3, h4 {
 
 .lead, .nav-label {
   overflow-wrap: normal;
+  word-break: normal;                /* fallback */
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
@@ -77,6 +80,7 @@ h1, h2, h3, h4 {
 
 .card-title {
   overflow-wrap: normal;
+  word-break: normal;                /* fallback */
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
@@ -86,6 +90,13 @@ h1, h2, h3, h4 {
   white-space: nowrap;
   word-break: keep-all;
   line-break: strict;
+}
+
+/* Opt-in protection for tokens that must never split mid-string.
+   Apply to prices, number+unit pairs, and SHORT proper nouns — never
+   to body text or long proper nouns (use <wbr> there). See Rule 18. */
+.nowrap {
+  white-space: nowrap;
 }
 
 .choice, .card, [data-card] {
@@ -116,6 +127,8 @@ h1, h2, h3, h4 {
 15. **Audit outer CSS selectors when extending a card template.** Pre-existing broad descendant selectors (`.card span`, `.hero p`) will catch new inner elements you add for line-break control. Narrow them to direct child (`.card > span`) or explicit class (`.card .eyebrow`) BEFORE adding nested spans for line control. This prevents accidental color, font-weight, or letter-spacing leakage to your new spans. The bug usually appears as "title turned red" or "weight got bold" right after adding `titleLines`.
 16. **Never write literal HTML or Markdown markup in user-facing body data.** Strings like `"<br>"`, `"<ruby>"`, `` "`code`" `` are escaped by JSX/Astro interpolation and render as visible `<br>`, `` `code` `` characters in the page. In Japanese body at small sizes, the angle brackets and backticks appear as tiny marks above CJK glyphs and read as visual noise (resembling 圏点 or 濁点 marks). Either replace with plain Japanese ("改行タグ", "ふりがな"), or use semantic `<code>` markup styled with monospace + background.
 17. **Flex rows of links, chips, or buttons need `flex-wrap: wrap`.** A `display: flex` row of nav links, footer links, tag chips, or CTA buttons with no `flex-wrap` overflows the viewport on mobile — the row cannot shrink below its content. Add `flex-wrap: wrap` and reduce the `gap`, or stack the items with `flex-direction: column` on narrow screens. Whether to restructure the menu or just shrink the font is an editorial call — surface it to the user (Step 0).
+18. **Protect indivisible tokens with a reusable `.nowrap` utility, not scattered inline styles.** Numbers + units, prices, percentages, dates, and counts (`月額3,980円`, `936院`, `2,349名`, `5,000円オフ`) and *short* proper nouns (clinic / product / course / qualification names) must never break mid-token. A shared `white-space: nowrap` class is cleaner than per-element inline styles and easier to audit. **Long proper nouns are the exception:** blanket `nowrap` on a long name (e.g. `フォームソティックス・メディカル`) forces horizontal overflow on narrow screens — there, insert `<wbr>` at safe internal points, or use a `nowrap-desktop` class that releases to `normal` on mobile (see "Manual Phrase Protection"). Never put `.nowrap` on body text.
+19. **Restrict `<br>` to short display copy; never structure body text with it.** `<br>` is an *unconditional* break — acceptable in hero headings, banners, OGP-style copy, and short catchphrases where the break position is part of the design. It is wrong in body paragraphs, FAQ answers, lesson / article text, and any CMS field users type into freely: it fights responsive reflow and strands fragments at narrow widths. Fix body readability with line-width, line-height, and paragraph length instead. Where you need a *soft* "may break here" hint rather than a forced break, use `<wbr>` (Rule 13).
 
 ## Browser Compatibility
 
@@ -202,6 +215,7 @@ Add utilities to a global layer instead of repeating arbitrary classes:
   }
   .text-ja-heading {
     overflow-wrap: normal;
+    word-break: normal;       /* fallback */
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: balance;
@@ -211,6 +225,7 @@ Add utilities to a global layer instead of repeating arbitrary classes:
   .text-ja-lead,
   .text-ja-card-title {
     overflow-wrap: normal;
+    word-break: normal;       /* fallback */
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
@@ -220,6 +235,9 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     white-space: nowrap;
     word-break: keep-all;
     line-break: strict;
+  }
+  .text-ja-nowrap {
+    white-space: nowrap;      /* prices, number+unit pairs, short proper nouns */
   }
   .text-ja-choice,
   .text-ja-card-body {
@@ -242,6 +260,7 @@ Apply by semantic role:
 - `text-ja-label` — nav labels, tabs, badges, chips
 - `text-ja-choice` — selectable cards, option tiles, quiz answers
 - `text-ja-card-body` — card descriptions, helper text, form explanations
+- `text-ja-nowrap` — prices, number+unit pairs, short proper nouns (opt-in; never on body or long names)
 
 Do not apply `text-ja-button` to large option cards or cards with descriptions — they must wrap.
 
@@ -251,6 +270,7 @@ For tables, add table-specific utilities:
 @layer utilities {
   .text-ja-table-cell {
     overflow-wrap: normal;        /* breaks the inherited "anywhere" */
+    word-break: normal;           /* fallback */
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
@@ -292,6 +312,7 @@ The fix is a four-part contract — none of them alone is enough:
   vertical-align: top;
   padding: 12px 14px;
   overflow-wrap: normal;        /* breaks body's inherited "anywhere" */
+  word-break: normal;           /* fallback */
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
@@ -461,6 +482,7 @@ type Card = {
 .title-line {
   display: block;
   overflow-wrap: normal;
+  word-break: normal;        /* fallback */
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
@@ -592,6 +614,16 @@ Do NOT use it on:
 
 > **⚠️ After applying BudouX inside cards, always re-check the layout.** Inserting `<wbr>` (and `translateHTMLString`'s `keep-all` wrapper) changes where lines break — a card's line count and height can shift, text reflows, a card can grow taller, or a card grid can end up uneven. BudouX on card text is **not "apply and forget"**: after applying, view every affected card at mobile and desktop widths and adjust each one individually where needed — font-size, padding, copy length, or explicit `titleLines`. Budget time for this per-card pass; treat it as part of the BudouX work, not optional polish.
 
+## CMS & Template-Driven Content
+
+On CMS pages and template-builder products the developer cannot hand-tune every break — end users type the copy after launch. Instead of guessing, give each editable text field one of three break modes:
+
+- **Auto** — CSS `auto-phrase` + `text-wrap`, or build-time BudouX, inserts phrase breaks automatically. Default for headings, card titles, and short catch copy.
+- **None** — `white-space: nowrap` / `word-break: keep-all`. Default for fields that must stay intact: clinic / product / course / qualification names, prices, phone numbers, addresses, URLs, IDs.
+- **Manual** — the author controls the breaks. Reflect newlines typed into the input field as `<br>` at render time. Never let users write raw HTML: escape the input first, then convert literal `\n` to `<br>` (see Rule 16). Reserve this mode for hero headings.
+
+Apply BudouX to user-entered text **only at the render layer** — never store `<wbr>` (or zero-width spaces) back in the database, or it contaminates editing, search, and copy-paste. A field set to None or carrying a proper noun must be excluded from BudouX even when the surrounding surface is Auto.
+
 ## Layout Checks
 
 After typography changes, verify:
@@ -608,6 +640,8 @@ After typography changes, verify:
 - Two-column LP sections: text column not too narrow vs. adjacent image
 - Button text not awkwardly two-line (unless intentional card-button)
 - Card titles not splitting particles, quoted phrases, product names, or numbers + units
+- Numbers + units, prices, and short proper nouns carry `.nowrap` and do not split mid-token; long proper nouns use `<wbr>` rather than blanket `nowrap` (no mobile overflow)
+- No `<br>` used to structure body / FAQ / article paragraphs — `<br>` only in hero / banner / short display copy
 - Card descriptions: trailing character not orphaned on the last line — check iOS Safari / Firefox, where `auto-phrase` is unavailable and only `text-wrap: pretty` guards the orphan
 - Font weight not synthesized — display fonts show their actual weight, not browser-faked bold
 - Table cells: no single-character orphans on the last line, headers not breaking mid-word, longest cell in each column fits the assigned `<colgroup>` width
