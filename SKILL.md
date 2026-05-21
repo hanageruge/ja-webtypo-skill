@@ -543,16 +543,26 @@ Escalating to Tier 2 is a **judgment call — always surface it to the user.** S
 
 **Apply BudouX at build time** (SSG) or server-side — it bakes `<wbr>` into the HTML with zero runtime JS and zero runtime cost. Avoid the `<budoux-ja>` runtime web component on static sites; reserve it for text that only exists client-side.
 
+Pick the form by whether the source is plain text or already contains HTML:
+
 ```js
 // Build-time (Astro / Vite / Node). Construct the parser once, reuse it.
 import { loadDefaultJapaneseParser } from "budoux";
 const parser = loadDefaultJapaneseParser();
-// HTML-escape each segment, then join with <wbr>. Render the result via the
-// framework's HTML injection (set:html / dangerouslySetInnerHTML).
-const html = parser.parse(text).map(escapeHtml).join("<wbr>");
+
+// (a) Plain text — card titles, descriptions, leads. Use parse():
+//     HTML-escape each segment, then join with <wbr>.
+const fromText = parser.parse(text).map(escapeHtml).join("<wbr>");
+
+// (b) Content that already contains HTML — e.g. a heading with <br> or
+//     inline <span>. parse() would mangle the tags; use the HTML-aware
+//     translateHTMLString(), then swap its U+200B separators for <wbr>.
+const fromHtml = parser.translateHTMLString(inner).replaceAll("\u200b", "<wbr>");
 ```
 
-**Critical — the wrapped element also needs `word-break: keep-all`.** `<wbr>` only *adds* a break opportunity; it does not remove the default ones. Japanese with `word-break: normal` already breaks between almost any two characters, so `<wbr>` alone changes nothing — the text still breaks mid-word on WebKit/Gecko. The BudouX-wrapped element must carry:
+Render the result via the framework's HTML injection (`set:html` / `dangerouslySetInnerHTML`).
+
+**Critical — `<wbr>` does nothing without `word-break: keep-all`.** `<wbr>` only *adds* a break opportunity; it does not remove the default ones. Japanese with `word-break: normal` already breaks between almost any two characters, so `<wbr>` alone changes nothing — the text still breaks mid-word on WebKit/Gecko. For the plain-text form (a), the element you render into must carry:
 
 ```css
 .budoux-wrapped {
@@ -561,7 +571,7 @@ const html = parser.parse(text).map(escapeHtml).join("<wbr>");
 }
 ```
 
-Without `keep-all` the `<wbr>` is inert and the mid-word breaks remain. This is the one place `word-break: keep-all` belongs on body text — Rule 5's warning assumes no `<wbr>` break points exist; BudouX supplies them.
+Form (b) is self-contained — `translateHTMLString` emits a span that already carries `word-break: keep-all; overflow-wrap: anywhere`. Without `keep-all` (from one form or the other) the `<wbr>` is inert and the mid-word breaks remain. This is the one place `word-break: keep-all` belongs on body text — Rule 5's warning assumes no `<wbr>` break points exist; BudouX supplies them.
 
 Output **`<wbr>`** — a real, semantically inert HTML element. Never emit zero-width-space characters (they contaminate copy-paste and search), and never wrap every phrase in a `<span>` (that is what creates accessibility / SEO noise). Never store the `<wbr>` HTML back in your data layer; wrap at the render layer only (see Rule 16).
 

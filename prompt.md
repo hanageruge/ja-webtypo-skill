@@ -343,12 +343,17 @@ A 1.55rem hero in a 5-up grid produces ~7-char budget. Any longer line WILL wrap
 
 - Apply at **build time** / server-side (bakes `<wbr>` into HTML, zero runtime JS). Avoid the `<budoux-ja>` runtime web component on static sites.
 - Output **`<wbr>`** real elements, never zero-width-space (keeps copy-paste / search clean). Render via `set:html` / `dangerouslySetInnerHTML`; never store `<wbr>` HTML in the data layer.
-- **The wrapped element also needs `word-break: keep-all` + `overflow-wrap: anywhere`.** `<wbr>` only adds break opportunities; without `keep-all`, Japanese still breaks mid-word everywhere (its default) and `<wbr>` does nothing on WebKit/Gecko. `keep-all` makes the text break ONLY at the `<wbr>` points; `anywhere` is the safety valve for an over-long phrase.
+- **The wrapped element also needs `word-break: keep-all` + `overflow-wrap: anywhere`.** `<wbr>` only adds break opportunities; without `keep-all`, Japanese still breaks mid-word everywhere (its default) and `<wbr>` does nothing on WebKit/Gecko. `keep-all` makes the text break ONLY at the `<wbr>` points; `anywhere` is the safety valve for an over-long phrase. (This applies to form (a); form (b)'s `translateHTMLString` output is self-contained — its span already carries both.)
 
 ```js
 import { loadDefaultJapaneseParser } from "budoux";
 const parser = loadDefaultJapaneseParser();
-const html = parser.parse(text).map(escapeHtml).join("<wbr>");
+// (a) Plain text — parse() → escape each segment → join with <wbr>.
+const fromText = parser.parse(text).map(escapeHtml).join("<wbr>");
+// (b) Content with HTML (headings with <br> etc.) — parse() mangles tags;
+//     use HTML-aware translateHTMLString(), swap its U+200B for <wbr>.
+//     Its output span already carries word-break: keep-all (self-contained).
+const fromHtml = parser.translateHTMLString(inner).replaceAll("\u200b", "<wbr>");
 ```
 
 **Where to apply BudouX** — short curated display copy: headings, card titles, CTA, short leads, short card / feature descriptions, important mobile copy. **Do NOT** apply to: long-form / blog body, Q&A long comments, form inputs, URLs, emails, phone numbers, product codes, price tables, admin inputs, user-generated content. Proper nouns (clinic / person / product / service / medical names) are where auto-segmentation guesses wrong — hand-protect them with `nowrap` / manual `<wbr>` / `<br>` instead.
