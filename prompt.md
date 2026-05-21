@@ -17,7 +17,7 @@ Make Japanese web pages readable before decorative. Apply stable CSS defaults fi
 Before editing code, ask the user to choose the scope — do not apply everything unasked. Present it as a short pick-one question with plain "pick this → this changes" outcomes:
 
 - **Coverage:** Tier 1 (CSS baseline — fixes desktop/Android Chrome & Edge; fast, no dependency; iPhone/Firefox still break mid-word) vs Tier 1 + Tier 2 (also build-time BudouX — fixes iPhone/Firefox; adds a build dependency).
-- **Surfaces:** headings only / + lead paragraphs / + card descriptions / + long-form body (most thorough, higher mis-segmentation risk — usually not recommended).
+- **Structures (checklist — confirm each):** headings · lead / intro paragraphs · card & feature descriptions · FAQ Q&A (often `<div>`s, not `<p>`s — match by class) · general body paragraphs (weigh mis-segmentation risk on long-form) · table cells (usually skip). Never phrase-break nav, buttons, footer links, form inputs, URLs, or code.
 
 Structural layout changes (wrapping/stacking a nav or footer link row, shrinking a menu font) are editorial calls too — describe the change and let the user pick "restructure" vs "leave it". After applying, report scope applied vs left out.
 
@@ -388,6 +388,7 @@ const fromHtml = parser.translateHTMLString(inner).replaceAll("\u200b", "<wbr>")
 ## Output Format
 
 After editing, report:
+- Scope applied — per-structure breakdown of what was phrase-broken vs left out (headings, leads, card descriptions, FAQ, body, table cells); must match Step 0
 - CSS rules added or changed
 - Components / selectors where typography classes were applied
 - Dangerous rules removed (especially `word-break: break-all`)

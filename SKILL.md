@@ -19,11 +19,14 @@ Confirm two things:
    - *Tier 1 — CSS baseline only.* Font stack, spacing, CSS line-break control. Fixes Blink (desktop & Android Chrome, Edge). Fast, no dependency. On iPhone and Firefox, mid-word breaks remain.
    - *Tier 1 + Tier 2 — add build-time BudouX.* Also fixes WebKit (every iPhone browser) and Gecko (Firefox). Adds a build-time dependency.
 
-2. **Surfaces** — where phrase-aware breaking is applied:
-   - *Headings only* — smallest, safest.
-   - *+ lead paragraphs* — each page's intro copy.
-   - *+ card / feature descriptions* — short display copy generally; the usual choice for marketing sites.
-   - *+ long-form body* — most thorough, but higher risk of proper-noun mis-segmentation; usually not recommended.
+2. **Which structures get phrase-aware breaking** — walk this checklist with the user and confirm each item (it is a checklist, not a single pick):
+   - Headings (h1–h3) — almost always yes.
+   - Lead / section-intro paragraphs — usually yes.
+   - Card & feature descriptions — usually yes on marketing sites.
+   - FAQ questions & answers — yes when the page has them. Note: FAQ rows are often `<div>`s, not `<p>`s — match them by class, not by tag.
+   - General body paragraphs — optional; on long-form / article body, weigh the proper-noun mis-segmentation risk first.
+   - Table cells — usually no; cell text is short. See "Table Cells".
+   - Never phrase-broken (they get other treatment): nav links, buttons, footer links, form input values, URLs, email addresses, code, product IDs.
 
 Structural layout fixes — wrapping or stacking a nav / footer link row, shrinking a menu's font — are editorial calls too. Don't restructure silently: state what you would change and why, and let the user choose "restructure" vs "leave it" (see Rule 17).
 
@@ -648,6 +651,7 @@ For repeated list cards with 1–2 lines of Japanese, prefer vertical centering:
 
 After editing, report:
 
+- **Scope applied** — a per-structure breakdown: which structure types (headings, leads, card descriptions, FAQ, body paragraphs, table cells) received phrase-aware breaking and which were deliberately left out. Must match what was agreed in Step 0, so the user sees exactly what changed where.
 - CSS rules added or changed
 - Components / selectors where typography classes or rules were applied
 - Dangerous rules removed or replaced (especially `word-break: break-all`)
