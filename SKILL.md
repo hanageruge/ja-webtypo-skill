@@ -1,6 +1,6 @@
 ---
 name: ja-webtypo-skill
-description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue, Svelte, Astro. Fixes awkward Japanese line breaks; improves readability of headings, body, buttons, cards, nav, forms. Applies proper letter-spacing, line-height, font stack, CJK punctuation handling, and responsive verification. Triggers when Japanese text wraps oddly, headings look cramped, particles strand at line ends, or a site needs production-grade Japanese typography defaults.
+description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue, Svelte, Astro. Fixes awkward Japanese line breaks AND wrong text alignment (justify on Japanese mobile, the most common bug). Improves readability of headings, body, buttons, cards, nav, forms. Applies proper text-align defaults (left for body), letter-spacing, line-height, font stack, CJK punctuation handling, and responsive verification. Triggers when Japanese text wraps oddly, headings look cramped, particles strand at line ends, body has inter-character gaps or empty right edges (justify symptoms), or a site needs production-grade Japanese typography defaults.
 ---
 
 # Japanese Web Typography
@@ -27,6 +27,8 @@ Confirm two things:
    - General body paragraphs — optional; on long-form / article body, weigh the proper-noun mis-segmentation risk first.
    - Table cells — usually no; cell text is short. See "Table Cells".
    - Never phrase-broken (they get other treatment): nav links, buttons, footer links, form input values, URLs, email addresses, code, product IDs.
+
+3. **Text alignment policy** — Confirm `text-align: left` as the default for all Japanese body, lead, card description, FAQ, and table-cell text. `text-align: justify` on Japanese inserts visible gaps between *characters* on narrow columns (no word boundaries → spaces inserted between characters) and leaves an empty right on every paragraph's last line by spec. If the existing CSS has `text-align: justify` on body / card / FAQ text, **flag it proactively in the first response — do not silently leave it.** It is the single most common Japanese mobile typography bug. Keep justify only on opt-in (wide editorial article columns, ≥40 chars/line, with mobile media-query fallback). See the "Text Alignment" section for the per-structure reference and the elicitation pattern.
 
 Structural layout fixes — wrapping or stacking a nav / footer link row, shrinking a menu's font — are editorial calls too. Don't restructure silently: state what you would change and why, and let the user choose "restructure" vs "leave it" (see Rule 17).
 
@@ -58,6 +60,10 @@ body {
   word-break: normal;                /* Fallback */
   word-break: auto-phrase;           /* Chrome 119+ progressive enhancement */
   line-break: strict;
+
+  /* Alignment — Japanese default: left. See Rule 20 / "Text Alignment" section.
+     Never set text-align: justify on body / cards / FAQ. */
+  text-align: left;
 }
 
 h1, h2, h3, h4 {
@@ -76,6 +82,7 @@ h1, h2, h3, h4 {
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
+  text-align: left;                  /* Japanese default — see Rule 20 */
 }
 
 .card-title {
@@ -105,6 +112,7 @@ h1, h2, h3, h4 {
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;                 /* orphan guard where auto-phrase is unsupported */
+  text-align: left;                  /* Japanese default — see Rule 20. Override card titles inside if design demands center */
 }
 ```
 
@@ -129,6 +137,72 @@ h1, h2, h3, h4 {
 17. **Flex rows of links, chips, or buttons need `flex-wrap: wrap`.** A `display: flex` row of nav links, footer links, tag chips, or CTA buttons with no `flex-wrap` overflows the viewport on mobile — the row cannot shrink below its content. Add `flex-wrap: wrap` and reduce the `gap`, or stack the items with `flex-direction: column` on narrow screens. Whether to restructure the menu or just shrink the font is an editorial call — surface it to the user (Step 0).
 18. **Protect indivisible tokens with a reusable `.nowrap` utility, not scattered inline styles.** Numbers + units, prices, percentages, dates, and counts (`月額3,980円`, `936院`, `2,349名`, `5,000円オフ`) and *short* proper nouns (clinic / product / course / qualification names) must never break mid-token. A shared `white-space: nowrap` class is cleaner than per-element inline styles and easier to audit. **Long proper nouns are the exception:** blanket `nowrap` on a long name (e.g. `フォームソティックス・メディカル`) forces horizontal overflow on narrow screens — there, insert `<wbr>` at safe internal points, or use a `nowrap-desktop` class that releases to `normal` on mobile (see "Manual Phrase Protection"). Never put `.nowrap` on body text.
 19. **Restrict `<br>` to short display copy; never structure body text with it.** `<br>` is an *unconditional* break — acceptable in hero headings, banners, OGP-style copy, and short catchphrases where the break position is part of the design. It is wrong in body paragraphs, FAQ answers, lesson / article text, and any CMS field users type into freely: it fights responsive reflow and strands fragments at narrow widths. Fix body readability with line-width, line-height, and paragraph length instead. Where you need a *soft* "may break here" hint rather than a forced break, use `<wbr>` (Rule 13).
+20. **Default `text-align: left` for Japanese; never `justify` on body / card / FAQ text.** Japanese has no word boundaries, so `text-align: justify` inserts space *between characters* to fill the line — visible as inter-character gaps on narrow columns (mobile cards especially). It also leaves the last line of every paragraph short by spec, so combined with character-spread above, the alignment reads as inconsistent. **Reserve `justify` for editorial article body where the column is ≥40 characters wide AND every line fills naturally; never on cards, FAQ, mobile-first layouts, or any narrow column.** Headings and CTA buttons pick `left` or `center` based on design — never `justify`. See the "Text Alignment" section for the per-structure reference and decision tree.
+
+## Text Alignment
+
+Japanese text alignment defaults differ from English because Japanese has no word boundaries — `text-align: justify` distributes space between *characters*, not between words. This produces visible gaps on narrow columns. The defaults below avoid the single most common mobile typography bug on Japanese sites.
+
+### The justify problem in 60 seconds
+
+On a 13-character-wide mobile card column, `text-align: justify` on body text produces two visible artifacts:
+
+1. **Inter-character gaps on every line except the last** — browsers stretch the line by inserting space between characters, since there are no word spaces to widen. On narrow columns (especially mobile cards), the gaps are unmistakably visible.
+2. **Empty space to the right of the last line of every paragraph** — by CSS spec, `text-align: justify` deliberately does NOT stretch the last line (forcing it would create huge gaps in Japanese), so the last line is left-aligned regardless of the alignment setting.
+
+Together these read as broken alignment, not "neatly justified."
+
+### Per-structure defaults
+
+| Structure | Default | Notes |
+|---|---|---|
+| Hero / display heading | `left` or `center` | Design choice. **Never justify.** |
+| Section heading | `left` | Center only when design demands. |
+| Lead / section intro | `left` | Never justify. |
+| Card title | `left` or `center` | Design choice. **Never justify.** |
+| Card description (body) | `left` | **Default. Never justify.** This is where the bug most often appears. |
+| FAQ question / answer | `left` | Never justify. |
+| Long-form article body | `left` | Justify acceptable only when column ≥40 chars/line AND lines naturally fill — see below. |
+| CTA button label | `center` | Always center. |
+| Table cell text | `left` | Numeric columns may use `right` or tabular numerals. |
+
+### When `text-align: justify` IS acceptable
+
+Reserve justify for editorial article body where ALL of these are true:
+
+- Column width ≥40 Japanese characters per line (typical desktop article column)
+- Paragraphs long enough that lines naturally fill (≥4–5 lines per paragraph)
+- The empty last-line right is acceptable as part of the editorial style
+- The user has explicitly chosen justify after seeing the mobile trade-off
+
+Even then, switch to `text-align: left` on mobile via media query:
+
+```css
+.article-body {
+  text-align: justify;
+}
+@media (max-width: 600px) {
+  .article-body {
+    text-align: left;
+  }
+}
+```
+
+### Scoping reminder
+
+Apply alignment per-element via class. Changing `.benefit-card__desc { text-align: left }` does NOT affect `.benefit-card__title` or any other element. CSS scope is narrow by default — use this to mix alignments within the same card (e.g., centered title + left-aligned body). Surface this scoping in your response so the user knows what is and isn't affected.
+
+### Step 0 elicitation pattern
+
+When entering a project, present alignment as a multiple-choice scope item (use AskUserQuestion if available). Example phrasing in Japanese for end-user clarity:
+
+> **本文・カード本文の text-align、どうしますか？**
+>
+> - **[推奨] すべて `left` 左寄せ** — Japanese default。モバイルでも字間バグなし。最終行の余白問題なし。デザインの「整列感」は他の要素（カードの枠揃え・余白）で担保する。
+> - **[意図あり] 本文は `justify` 両端揃え** — モバイルで字間が空く・最終行に余白が出る trade-off を承知の上で。デスクトップのみ justify にして mobile は left にフォールバックすることも可能。
+> - **構造別に決める** — タイトル / リード / カード本文 / FAQ / 一般本文 ごとに個別指定。設計レビューが必要なときに使う。
+
+Walk this pick BEFORE editing any CSS. If the existing CSS has `text-align: justify` on body / card / FAQ text, surface it in the same response and recommend changing to `left` with the visible reason (character gaps + last-line orphan).
 
 ## Browser Compatibility
 
@@ -212,6 +286,7 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     line-break: strict;
     letter-spacing: 0.02em;
     line-height: 1.75;
+    text-align: left;         /* Japanese default — see Rule 20 */
   }
   .text-ja-heading {
     overflow-wrap: normal;
@@ -229,6 +304,7 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
+    text-align: left;         /* Japanese default — override on card titles if design demands center */
   }
   .text-ja-button,
   .text-ja-label {
@@ -246,6 +322,20 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
+    text-align: left;         /* Japanese default — see Rule 20 */
+  }
+  /* Opt-in justify utilities — NEVER apply on cards, FAQ, mobile-first body, or buttons.
+     Reserve for wide editorial article columns (≥40 chars/line). See Rule 20. */
+  .text-ja-justify {
+    text-align: justify;
+  }
+  .text-ja-justify-desktop {
+    text-align: justify;
+  }
+  @media (max-width: 600px) {
+    .text-ja-justify-desktop {
+      text-align: left;       /* mobile fallback — avoid character gaps */
+    }
   }
 }
 ```
@@ -261,6 +351,8 @@ Apply by semantic role:
 - `text-ja-choice` — selectable cards, option tiles, quiz answers
 - `text-ja-card-body` — card descriptions, helper text, form explanations
 - `text-ja-nowrap` — prices, number+unit pairs, short proper nouns (opt-in; never on body or long names)
+- `text-ja-justify` — opt-in only, for wide editorial article columns (≥40 chars/line). Never on cards / FAQ / mobile body / buttons.
+- `text-ja-justify-desktop` — same as above but auto-falls-back to `left` on ≤600px.
 
 Do not apply `text-ja-button` to large option cards or cards with descriptions — they must wrap.
 
@@ -643,6 +735,7 @@ After typography changes, verify:
 - Numbers + units, prices, and short proper nouns carry `.nowrap` and do not split mid-token; long proper nouns use `<wbr>` rather than blanket `nowrap` (no mobile overflow)
 - No `<br>` used to structure body / FAQ / article paragraphs — `<br>` only in hero / banner / short display copy
 - Card descriptions: trailing character not orphaned on the last line — check iOS Safari / Firefox, where `auto-phrase` is unavailable and only `text-wrap: pretty` guards the orphan
+- Body, lead, card descriptions, FAQ text use `text-align: left` (Japanese default) — verify no `text-align: justify` slipped in. Symptoms of an unwanted justify: inter-character gaps on lines 1..N-1 and an empty right edge on the last line of every paragraph. If justify is intentional (editorial article body only), confirm column ≥40 chars/line at desktop AND switches to `left` on mobile via media query
 - Font weight not synthesized — display fonts show their actual weight, not browser-faked bold
 - Table cells: no single-character orphans on the last line, headers not breaking mid-word, longest cell in each column fits the assigned `<colgroup>` width
 - Tables narrower than viewport: horizontal scroll appears below `min-width`, layout does not break out of its container
@@ -664,6 +757,7 @@ For repeated list cards with 1–2 lines of Japanese, prefer vertical centering:
 After editing, report:
 
 - **Scope applied** — a per-structure breakdown: which structure types (headings, leads, card descriptions, FAQ, body paragraphs, table cells) received phrase-aware breaking and which were deliberately left out. Must match what was agreed in Step 0, so the user sees exactly what changed where.
+- **Text alignment changes** — per-structure breakdown. State the default applied (`text-align: left` for body / lead / card descriptions / FAQ) and any `text-align: justify` that was removed, kept (with opt-in conditions), or added. For each justify removal, name the visual reason (inter-character gaps + last-line orphaning) and the surfaces affected.
 - CSS rules added or changed
 - Components / selectors where typography classes or rules were applied
 - Dangerous rules removed or replaced (especially `word-break: break-all`)
