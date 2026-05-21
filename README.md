@@ -1,6 +1,6 @@
 # ja-webtypo-skill
 
-日本語Webタイポグラフィを最適化するための、AIアシスタント向けスキル / プロンプト集です。
+日本語Webタイポグラフィを最適化するための、Claude Code 用のスキルです。
 
 LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイト・採用サイト・メディア / ブログ・ダッシュボードなど、**日本語が使われるあらゆるWeb制作**で、見出し・本文・ボタン・カード・フォームの**改行と可読性**を改善します。
 
@@ -23,7 +23,8 @@ LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイ
 
 - **日本語タイポの基本**（フォントスタック・字間・行間・約物詰め）を網羅
 - **CJK 改行制御**（`line-break: strict` / `word-break: auto-phrase` / `text-wrap: balance`）
-- **ブラウザ互換性表**つき（auto-phrase は Chrome 119+ など、フォールバック必須項目を明示）
+- **ブラウザ互換性をエンジンで判断**（auto-phrase は Blink エンジン専用、iOS の全ブラウザは WebKit で非対応）
+- **BudouX（Tier 2）対応**（ビルド時に文節改行を焼き込み、iPhone・Firefox でも文節単位で折り返す）
 - **レスポンシブ検証**: 360 / 390 / 768 / 1280px の最小確認セット + 中間幅のドラッグ検証
 - **Tailwind ユーティリティパターン**（`text-ja-heading` / `text-ja-button` など）
 - **手動改行保護**（重要フレーズの nowrap span パターン）
@@ -35,8 +36,7 @@ LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイ
 
 | ファイル | 用途 |
 |---|---|
-| `SKILL.md` | Claude Code 用のスキル本体（frontmatter 付き） |
-| `prompt.md` | Cursor / ChatGPT / Codex / Copilot 等の他ツール用プロンプト |
+| `SKILL.md` | スキル本体（frontmatter 付き、Claude Code 用） |
 | `README.md` | このファイル |
 | `LICENSE` | MIT |
 
@@ -44,12 +44,7 @@ LP・コーポレートサイト・SaaS管理画面・ECサイト・会員サイ
 
 ## インストール
 
-利用しているAIアシスタントの**スキル / プロンプト読み込み方法**に従って、次のいずれかのファイルを設定してください。
-
-- **Claude Code** → `SKILL.md`（frontmatter付き、そのまま `skills` ディレクトリに配置）
-- **その他のAIツール**（Cursor / GitHub Copilot / Codex CLI / ChatGPT / Cline / Gemini など）→ `prompt.md` の内容を、各ツールのカスタム指示・ルールファイル・システムプロンプト等に貼り付け
-
-設定方法は**各ツールの公式ドキュメント**を参照してください。
+`SKILL.md` を Claude Code のスキルとして配置します。`~/.claude/skills/`（全プロジェクト共通）または プロジェクト内の `.claude/skills/` 配下に置くと呼び出せるようになります。frontmatter 付きなので、ファイルをそのまま置くだけで使えます。
 
 ---
 

@@ -614,6 +614,8 @@ Do NOT use it on:
 
 **Proper nouns** — clinic names, personal names, product / service / medical names (e.g. "フォームソティックス・メディカル") — are where auto-segmentation most often guesses wrong. Do not trust BudouX (or `auto-phrase`) there: protect them by hand with `white-space: nowrap`, manual `<wbr>`, or `<br>` (see "Manual Phrase Protection"), and keep hand-authored breaks authoritative where they mix with BudouX output.
 
+> **⚠️ After applying BudouX inside cards, always re-check the layout.** Inserting `<wbr>` (and `translateHTMLString`'s `keep-all` wrapper) changes where lines break — a card's line count and height can shift, text reflows, a card can grow taller, or a card grid can end up uneven. BudouX on card text is **not "apply and forget"**: after applying, view every affected card at mobile and desktop widths and adjust each one individually where needed — font-size, padding, copy length, or explicit `titleLines`. Budget time for this per-card pass; treat it as part of the BudouX work, not optional polish.
+
 ## Layout Checks
 
 After typography changes, verify:
