@@ -9,6 +9,26 @@ description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue
 
 Make Japanese web pages readable before decorative. Apply stable CSS defaults first — font stack, letter-spacing, line-height, CJK line-break rules — then protect important phrases manually only when automatic wrapping still fails.
 
+## Step 0 — Agree the scope before touching code
+
+Japanese typography work ranges from a 5-minute CSS baseline to a build-pipeline change. Applying everything unasked surprises the user and usually over-reaches. **Before editing any code, present the scope as a short multiple-choice question (use AskUserQuestion if available) and let the user pick.** Explain each option in plain terms — "pick this → this is what changes."
+
+Confirm two things:
+
+1. **Coverage tier** (see "Coverage Tiers"):
+   - *Tier 1 — CSS baseline only.* Font stack, spacing, CSS line-break control. Fixes Blink (desktop & Android Chrome, Edge). Fast, no dependency. On iPhone and Firefox, mid-word breaks remain.
+   - *Tier 1 + Tier 2 — add build-time BudouX.* Also fixes WebKit (every iPhone browser) and Gecko (Firefox). Adds a build-time dependency.
+
+2. **Surfaces** — where phrase-aware breaking is applied:
+   - *Headings only* — smallest, safest.
+   - *+ lead paragraphs* — each page's intro copy.
+   - *+ card / feature descriptions* — short display copy generally; the usual choice for marketing sites.
+   - *+ long-form body* — most thorough, but higher risk of proper-noun mis-segmentation; usually not recommended.
+
+Structural layout fixes — wrapping or stacking a nav / footer link row, shrinking a menu's font — are editorial calls too. Don't restructure silently: state what you would change and why, and let the user choose "restructure" vs "leave it" (see Rule 17).
+
+After applying, report what was in scope and what was deliberately left out.
+
 ## One-Shot Instruction
 
 When the user wants a copy-paste prompt for another tool, provide this:
@@ -116,6 +136,7 @@ h1, h2, h3, h4 {
 14. **Wrap inline English in `<span lang="en">` and let `hyphens: auto` handle it.** A long English word in Japanese body text (e.g., "extraordinary") can overflow narrow cards. Mark the English span with `lang="en"`, apply `:lang(en) { hyphens: auto }` globally, and optionally insert `&shy;` at preferred break points. This avoids `word-break: break-all` while still keeping the layout intact.
 15. **Audit outer CSS selectors when extending a card template.** Pre-existing broad descendant selectors (`.card span`, `.hero p`) will catch new inner elements you add for line-break control. Narrow them to direct child (`.card > span`) or explicit class (`.card .eyebrow`) BEFORE adding nested spans for line control. This prevents accidental color, font-weight, or letter-spacing leakage to your new spans. The bug usually appears as "title turned red" or "weight got bold" right after adding `titleLines`.
 16. **Never write literal HTML or Markdown markup in user-facing body data.** Strings like `"<br>"`, `"<ruby>"`, `` "`code`" `` are escaped by JSX/Astro interpolation and render as visible `<br>`, `` `code` `` characters in the page. In Japanese body at small sizes, the angle brackets and backticks appear as tiny marks above CJK glyphs and read as visual noise (resembling 圏点 or 濁点 marks). Either replace with plain Japanese ("改行タグ", "ふりがな"), or use semantic `<code>` markup styled with monospace + background.
+17. **Flex rows of links, chips, or buttons need `flex-wrap: wrap`.** A `display: flex` row of nav links, footer links, tag chips, or CTA buttons with no `flex-wrap` overflows the viewport on mobile — the row cannot shrink below its content. Add `flex-wrap: wrap` and reduce the `gap`, or stack the items with `flex-direction: column` on narrow screens. Whether to restructure the menu or just shrink the font is an editorial call — surface it to the user (Step 0).
 
 ## Browser Compatibility
 
