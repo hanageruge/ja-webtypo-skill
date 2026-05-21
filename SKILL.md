@@ -32,30 +32,6 @@ Structural layout fixes — wrapping or stacking a nav / footer link row, shrink
 
 After applying, report what was in scope and what was deliberately left out.
 
-## One-Shot Instruction
-
-When the user wants a copy-paste prompt for another tool, provide this:
-
-```txt
-日本語Webタイポグラフィの最適化を行ってください。
-
-目的は、日本語のLP・Webページ上で、見出し・本文・リード文・ボタン・カード・ナビが読みやすく、改行が不自然にならないようにすることです。
-
-以下を実施してください。
-
-1. <html lang="ja"> が設定されているか確認
-2. グローバルCSSに、日本語フォントスタック・letter-spacing・line-height・font-feature-settings・改行制御の基本指定を追加
-3. 見出し・本文・リード文・カードタイトル・ボタン・ナビ・短いラベルに、要素ごとの改行制御を適用
-4. word-break: break-all を原則削除または置換
-5. 不要な <br> や &nbsp; による手動改行を見直し
-6. スマホ幅 (360 / 390px) で、見出し・ボタン・カードタイトルが変な位置で改行されないように調整
-7. カード・選択肢・フォーム行の中で、テキストが枠内に収まっているか確認
-8. 行数が増えすぎる場合は、先にカラム幅・グリッド比率・コンテナ幅・左右余白を見直す
-9. テーブルがある場合は、`table-layout: fixed` + `<colgroup>` + 各セルの `overflow-wrap: normal` を適用し、ヘッダーには `white-space: nowrap` を指定。ボディ継承の `overflow-wrap: anywhere` によるセル内の1文字孤立を確実に止める
-10. CSSだけで解決できない長すぎる文言は短縮案も提示
-11. 修正後は、変更したCSS・適用箇所・削除した危険な指定・残っている確認ポイントを報告
-```
-
 ## Baseline CSS
 
 Use `<html lang="ja">` in markup (not CSS).
