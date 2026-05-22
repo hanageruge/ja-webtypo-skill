@@ -1,6 +1,6 @@
 ---
 name: ja-webtypo-skill
-description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue, Svelte, Astro. Fixes awkward Japanese line breaks AND wrong text alignment (justify on Japanese mobile, the most common bug). Improves readability of headings, body, buttons, cards, nav, forms. Applies proper text-align defaults (left for body), letter-spacing, line-height, font stack, CJK punctuation handling, and responsive verification. Triggers when Japanese text wraps oddly, headings look cramped, particles strand at line ends, body has inter-character gaps or empty right edges (justify symptoms), or a site needs production-grade Japanese typography defaults.
+description: Japanese web typography for HTML/CSS, Tailwind, React, Next.js, Vue, Svelte, Astro. Fixes awkward Japanese line breaks AND wrong text alignment (justify on Japanese mobile, the most common bug). Couples phrase-aware breaking (auto-phrase / BudouX) to text-align — ON by default for short display copy (headings, card titles) and center-aligned text; OFF by default for left-aligned body / lead / card descriptions to avoid right-edge gaps. Protects quoted phrases (「〜」) from BudouX mid-quote splits. Improves readability of headings, body, buttons, cards, nav, forms. Applies proper text-align defaults (left for body), letter-spacing, line-height, font stack, CJK punctuation handling, and responsive verification. Triggers when Japanese text wraps oddly, headings look cramped, particles strand at line ends, body has inter-character gaps or empty right edges (justify symptoms), card body has gappy right edges (phrase-break on left-aligned body), or a site needs production-grade Japanese typography defaults.
 ---
 
 # Japanese Web Typography
@@ -19,14 +19,26 @@ Confirm two things:
    - *Tier 1 — CSS baseline only.* Font stack, spacing, CSS line-break control. Fixes Blink (desktop & Android Chrome, Edge). Fast, no dependency. On iPhone and Firefox, mid-word breaks remain.
    - *Tier 1 + Tier 2 — add build-time BudouX.* Also fixes WebKit (every iPhone browser) and Gecko (Firefox). Adds a build-time dependency.
 
-2. **Which structures get phrase-aware breaking** — walk this checklist with the user and confirm each item (it is a checklist, not a single pick):
-   - Headings (h1–h3) — almost always yes.
-   - Lead / section-intro paragraphs — usually yes.
-   - Card & feature descriptions — usually yes on marketing sites.
-   - FAQ questions & answers — yes when the page has them. Note: FAQ rows are often `<div>`s, not `<p>`s — match them by class, not by tag.
-   - General body paragraphs — optional; on long-form / article body, weigh the proper-noun mis-segmentation risk first.
-   - Table cells — usually no; cell text is short. See "Table Cells".
-   - Never phrase-broken (they get other treatment): nav links, buttons, footer links, form input values, URLs, email addresses, code, product IDs.
+2. **Which structures get phrase-aware breaking** — phrase-break is coupled to alignment and length. Walk this 3-tier decision tree with the user, not a flat checklist:
+
+   **Tier A — Always ON (regardless of alignment):**
+   - Headings (h1–h4) — short display copy where every break position matters.
+   - Card titles, feature titles, FAQ summary titles — short display copy (typically ≤3 lines).
+
+   **Tier B — Coupled to text-align (confirm per structure):**
+   - Lead / section-intro paragraphs → ON if centered, OFF if left-aligned.
+   - Hero subtitles, banner copy, tagline blocks → same coupling.
+   - When unsure of the intended alignment, ASK before applying.
+
+   **Tier C — Always OFF (left-aligned body, long-form):**
+   - Card descriptions, feature descriptions — even if "only 2–3 lines" they tend to grow with copy edits, and BudouX over-fragments them into right-edge gaps. Default OFF.
+   - FAQ answers, lesson / article body, blog body — always OFF.
+   - General body paragraphs — always OFF.
+   - Table cells — see "Table Cells".
+
+   **Never phrase-broken (they get other treatment):** nav links, buttons, footer links, form input values, URLs, email addresses, code, product IDs.
+
+   The core reason for the coupling: phrase-aware breaks land at *phrase boundaries* rather than filling each line to the right edge. On **centered** text or **short display copy**, the resulting line lengths read as deliberate. On **left-aligned long body**, the same breaks create a gap-pocked right edge that reads as "the text got cut off." See Rule 21 and the "Phrase-break × Alignment Matrix" section.
 
 3. **Text alignment policy** — Confirm `text-align: left` as the default for all Japanese body, lead, card description, FAQ, and table-cell text. `text-align: justify` on Japanese inserts visible gaps between *characters* on narrow columns (no word boundaries → spaces inserted between characters) and leaves an empty right on every paragraph's last line by spec. If the existing CSS has `text-align: justify` on body / card / FAQ text, **flag it proactively in the first response — do not silently leave it.** It is the single most common Japanese mobile typography bug. Keep justify only on opt-in (wide editorial article columns, ≥40 chars/line, with mobile media-query fallback). See the "Text Alignment" section for the per-structure reference and the elicitation pattern.
 
@@ -76,13 +88,24 @@ h1, h2, h3, h4 {
   line-height: 1.4;
 }
 
+/* Left-aligned lead / body default — no phrase-break (Rule 21).
+   For centered lead copy, use .lead.is-centered or .lead-phrased. */
 .lead, .nav-label {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-break: strict;
+  text-align: left;                  /* Japanese default — see Rule 20 */
+}
+
+/* Opt-in: phrase-aware breaking for centered lead / hero subtitle copy. */
+.lead-phrased,
+.lead.is-centered {
   overflow-wrap: normal;
   word-break: normal;                /* fallback */
   word-break: auto-phrase;
   line-break: strict;
   text-wrap: pretty;
-  text-align: left;                  /* Japanese default — see Rule 20 */
+  text-align: center;                /* this variant is for centered copy */
 }
 
 .card-title {
@@ -106,13 +129,24 @@ h1, h2, h3, h4 {
   white-space: nowrap;
 }
 
+/* Left-aligned card descriptions / option tiles — no phrase-break (Tier C, Rule 21).
+   For centered short card copy, use .card-body-phrased / .choice-phrased. */
 .choice, .card, [data-card] {
   overflow-wrap: anywhere;
   word-break: normal;
+  line-break: strict;
+  text-align: left;                  /* Japanese default — see Rule 20 */
+}
+
+/* Opt-in: phrase-aware breaking for centered short card copy (1–2 lines). */
+.card-body-phrased,
+.choice-phrased {
+  overflow-wrap: anywhere;
+  word-break: normal;                /* fallback */
   word-break: auto-phrase;
   line-break: strict;
-  text-wrap: pretty;                 /* orphan guard where auto-phrase is unsupported */
-  text-align: left;                  /* Japanese default — see Rule 20. Override card titles inside if design demands center */
+  text-wrap: pretty;
+  text-align: center;
 }
 ```
 
@@ -138,6 +172,45 @@ h1, h2, h3, h4 {
 18. **Protect indivisible tokens with a reusable `.nowrap` utility, not scattered inline styles.** Numbers + units, prices, percentages, dates, and counts (`月額3,980円`, `936院`, `2,349名`, `5,000円オフ`) and *short* proper nouns (clinic / product / course / qualification names) must never break mid-token. A shared `white-space: nowrap` class is cleaner than per-element inline styles and easier to audit. **Long proper nouns are the exception:** blanket `nowrap` on a long name (e.g. `フォームソティックス・メディカル`) forces horizontal overflow on narrow screens — there, insert `<wbr>` at safe internal points, or use a `nowrap-desktop` class that releases to `normal` on mobile (see "Manual Phrase Protection"). Never put `.nowrap` on body text.
 19. **Restrict `<br>` to short display copy; never structure body text with it.** `<br>` is an *unconditional* break — acceptable in hero headings, banners, OGP-style copy, and short catchphrases where the break position is part of the design. It is wrong in body paragraphs, FAQ answers, lesson / article text, and any CMS field users type into freely: it fights responsive reflow and strands fragments at narrow widths. Fix body readability with line-width, line-height, and paragraph length instead. Where you need a *soft* "may break here" hint rather than a forced break, use `<wbr>` (Rule 13).
 20. **Default `text-align: left` for Japanese; never `justify` on body / card / FAQ text.** Japanese has no word boundaries, so `text-align: justify` inserts space *between characters* to fill the line — visible as inter-character gaps on narrow columns (mobile cards especially). It also leaves the last line of every paragraph short by spec, so combined with character-spread above, the alignment reads as inconsistent. **Reserve `justify` for editorial article body where the column is ≥40 characters wide AND every line fills naturally; never on cards, FAQ, mobile-first layouts, or any narrow column.** Headings and CTA buttons pick `left` or `center` based on design — never `justify`. See the "Text Alignment" section for the per-structure reference and decision tree.
+21. **Couple phrase-aware breaking to text-align and length.** `word-break: auto-phrase`, BudouX `<wbr>`, and `text-wrap: pretty` make lines break at *phrase boundaries* — not at the right edge. The visual result depends on whether the surrounding text is short or long, and whether it is centered or left-aligned:
+    - **Short display copy (h1–h4, card titles, ≤3 lines):** phrase-break ON regardless of alignment. With only 1–3 lines, every break position matters and the phrase boundaries dominate the layout cleanly. This is Tier A.
+    - **Lead / hero subtitle / banner copy (centered):** phrase-break ON. Centered text already has ragged edges on both sides, so phrase-based line lengths read as deliberate, not broken.
+    - **Lead / body / card description (left-aligned, ≥3 lines):** phrase-break OFF. Left-aligned readers expect each line to extend to the right edge; phrase-breaks leave visible gaps on the right that read as "the text got cut off." Use natural wrapping. This is Tier C.
+    - **When in doubt about alignment or expected length:** ASK in Step 0 rather than silently picking. Defaults assume left-aligned (Tier C) for `.lead` / `.card-body` / `.choice` and require opt-in via `-phrased` variants for centered copy.
+
+    See the "Phrase-break × Alignment Matrix" section for worked examples. The biggest miss this rule prevents is applying BudouX to left-aligned card descriptions on a marketing LP — the right-edge gap pattern looks like a CSS bug.
+22. **Protect Japanese quotation phrases (`「〜」`) from BudouX / `auto-phrase` mid-quote splits.** BudouX's segmentation model treats quoted phrases as candidate break opportunities — it will split inside `「なぜ処方するのか」` into `「なぜ処方」` + `「するのか」`, which reads as broken Japanese. The fix is to wrap the entire quoted phrase (including the brackets) in a `nowrap` span at the *content* layer, so the phrase-aware breaker sees it as a single unit:
+
+    ```html
+    <h3 class="card-title">
+      <span class="nowrap">「なぜ処方するのか」</span>を
+      エビデンスで答えられるツール
+    </h3>
+    ```
+
+    Apply this to all `「〜」`, `『〜』`, `（〜）` quoted spans inside text that will receive `auto-phrase` or BudouX — i.e., headings, card titles, and any opt-in `-phrased` copy. For *long* quoted phrases that themselves might overflow on mobile, prefer `<wbr>` *inside* the quote rather than blanket nowrap (Rule 13). For text in Tier C (no phrase-break), this is not needed — natural wrapping does not split quoted phrases anyway. Add this to BudouX preprocessing if you build a content pipeline: scan for `「[^」]+」` and auto-wrap each match in a `<span class="nowrap">…</span>`.
+
+## Phrase-break × Alignment Matrix
+
+The interaction of phrase-aware breaking and text-align is the most-missed nuance in Japanese web typography. Use this matrix to pick defaults; the Step 0 decision tree references it.
+
+| Surface | Alignment | Phrase-break | Why |
+|---|---|---|---|
+| Hero / section heading | left or center | **ON** | Short, 1–3 lines; break position dominates layout. |
+| Card title, FAQ summary title | left or center | **ON** | Same as headings — short display copy. |
+| Lead / section intro (centered) | center | **ON** | Centered ragged edges absorb phrase line lengths cleanly. |
+| Lead / section intro (left) | left | **OFF** | Left-aligned readers expect filled right edge. |
+| Card description (left, default) | left | **OFF** | Default; phrase-break creates right-edge gaps. Tier C. |
+| Card description (centered, short) | center | **ON** (opt-in via `-phrased`) | Marketing copy that is genuinely 1–2 lines centered. |
+| FAQ answer, article body | left | **OFF** | Long left-aligned body always OFF. |
+| Button label | center | OFF (with `nowrap`) | Buttons get `keep-all` + `nowrap`, not phrase-break. |
+| Table cell | left | ON (auto-phrase only) | Cell text is short; see "Table Cells". |
+
+### Worked failure modes
+
+- **Card description with BudouX, left-aligned, 4-line body:** The right edge develops 4–8 visible gaps where phrases ended early. Reads like a CSS bug. *Fix:* remove `auto-phrase` / `text-wrap: pretty` from `.card-body` (Tier C default).
+- **Centered hero subtitle with no phrase-break:** Lines break mid-word ("ツール / です" instead of "ツールです"). Reads as cramped. *Fix:* apply `.lead-phrased` or `.lead.is-centered` for centered copy.
+- **Heading with `「なぜ〜のか」`:** BudouX splits inside the quotes. *Fix:* wrap the quoted phrase in `<span class="nowrap">`. See Rule 22.
 
 ## Text Alignment
 
@@ -194,7 +267,9 @@ Apply alignment per-element via class. Changing `.benefit-card__desc { text-alig
 
 ### Step 0 elicitation pattern
 
-When entering a project, present alignment as a multiple-choice scope item (use AskUserQuestion if available). Example phrasing in Japanese for end-user clarity:
+When entering a project, present alignment AND phrase-break decisions as multiple-choice scope items (use AskUserQuestion if available). Example phrasings in Japanese for end-user clarity.
+
+**Question 1 — Text alignment**
 
 > **本文・カード本文の text-align、どうしますか？**
 >
@@ -202,7 +277,17 @@ When entering a project, present alignment as a multiple-choice scope item (use 
 > - **[意図あり] 本文は `justify` 両端揃え** — モバイルで字間が空く・最終行に余白が出る trade-off を承知の上で。デスクトップのみ justify にして mobile は left にフォールバックすることも可能。
 > - **構造別に決める** — タイトル / リード / カード本文 / FAQ / 一般本文 ごとに個別指定。設計レビューが必要なときに使う。
 
-Walk this pick BEFORE editing any CSS. If the existing CSS has `text-align: justify` on body / card / FAQ text, surface it in the same response and recommend changing to `left` with the visible reason (character gaps + last-line orphan).
+**Question 2 — Phrase-break (per Tier B surface only)**
+
+Only ask this for Tier B surfaces (lead, hero subtitle, card descriptions). Tier A (headings, card titles) is always ON; Tier C (left-aligned body, FAQ answers, article body) is always OFF — no question needed.
+
+> **このリード文／カード本文、配置はどうなる予定？**
+>
+> - **左揃え（左寄せ）** — phrase-break は OFF。文章が「右端まで詰まる」見た目になる。一般的な本文・カード説明文はこちら。
+> - **中央揃え** — phrase-break ON で適用（`.text-ja-lead-phrased` / `.text-ja-card-body-phrased`）。意味のかたまりで改行されて、中央揃えと相性が良い。ヒーローのサブタイトル・短いマーケコピー向け。
+> - **わからない／両方ある** — デフォルトの左揃え＋phrase-break OFF で進めて、個別指定が必要なら後で `-phrased` クラスを当てる。
+
+Walk both picks BEFORE editing any CSS. If the existing CSS has `text-align: justify` on body / card / FAQ text, surface it in the same response and recommend changing to `left` with the visible reason (character gaps + last-line orphan). If the existing CSS has `word-break: auto-phrase` or BudouX `<wbr>` on left-aligned multi-line body / card descriptions, surface that as a Rule 21 violation and recommend removal.
 
 ## Browser Compatibility
 
@@ -297,14 +382,30 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     letter-spacing: 0.01em;
     line-height: 1.4;
   }
-  .text-ja-lead,
+  /* Card titles — short display copy, phrase-break always ON (Tier A, Rule 21). */
   .text-ja-card-title {
     overflow-wrap: normal;
     word-break: normal;       /* fallback */
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
-    text-align: left;         /* Japanese default — override on card titles if design demands center */
+    text-align: left;         /* override to center if design demands */
+  }
+  /* Lead paragraphs — left-aligned default (Tier C, Rule 21). No phrase-break. */
+  .text-ja-lead {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    line-break: strict;
+    text-align: left;
+  }
+  /* Opt-in: phrase-break + centered for hero subtitles / centered lead copy. */
+  .text-ja-lead-phrased {
+    overflow-wrap: normal;
+    word-break: normal;       /* fallback */
+    word-break: auto-phrase;
+    line-break: strict;
+    text-wrap: pretty;
+    text-align: center;
   }
   .text-ja-button,
   .text-ja-label {
@@ -313,16 +414,25 @@ Add utilities to a global layer instead of repeating arbitrary classes:
     line-break: strict;
   }
   .text-ja-nowrap {
-    white-space: nowrap;      /* prices, number+unit pairs, short proper nouns */
+    white-space: nowrap;      /* prices, number+unit pairs, short proper nouns, OR quoted phrases inside phrase-break copy (Rule 22) */
   }
+  /* Card descriptions / option tiles — left-aligned default (Tier C). No phrase-break. */
   .text-ja-choice,
   .text-ja-card-body {
     overflow-wrap: anywhere;
     word-break: normal;
+    line-break: strict;
+    text-align: left;
+  }
+  /* Opt-in: phrase-break + centered for short marketing card copy (1–2 lines centered). */
+  .text-ja-card-body-phrased,
+  .text-ja-choice-phrased {
+    overflow-wrap: anywhere;
+    word-break: normal;       /* fallback */
     word-break: auto-phrase;
     line-break: strict;
     text-wrap: pretty;
-    text-align: left;         /* Japanese default — see Rule 20 */
+    text-align: center;
   }
   /* Opt-in justify utilities — NEVER apply on cards, FAQ, mobile-first body, or buttons.
      Reserve for wide editorial article columns (≥40 chars/line). See Rule 20. */
@@ -343,16 +453,21 @@ Add utilities to a global layer instead of repeating arbitrary classes:
 Apply by semantic role:
 
 - `text-ja-base` — page/body wrappers, prose containers
-- `text-ja-heading` — h1–h4, hero copy
-- `text-ja-lead` — lead paragraphs, section intros
-- `text-ja-card-title` — card titles, FAQ summaries, feature titles
+- `text-ja-heading` — h1–h4, hero copy (Tier A: phrase-break ON)
+- `text-ja-card-title` — card titles, FAQ summaries, feature titles (Tier A: phrase-break ON)
+- `text-ja-lead` — left-aligned lead paragraphs / section intros (Tier C: phrase-break OFF)
+- `text-ja-lead-phrased` — **centered** hero subtitle / lead copy (Tier B opt-in: phrase-break ON + center)
+- `text-ja-card-body` — left-aligned card descriptions, helper text, form explanations (Tier C: phrase-break OFF)
+- `text-ja-card-body-phrased` — **centered** short marketing card copy, 1–2 lines (Tier B opt-in: phrase-break ON + center)
+- `text-ja-choice` — left-aligned selectable cards, option tiles, quiz answers (Tier C)
+- `text-ja-choice-phrased` — centered option tiles (opt-in)
 - `text-ja-button` — compact CTA buttons only
 - `text-ja-label` — nav labels, tabs, badges, chips
-- `text-ja-choice` — selectable cards, option tiles, quiz answers
-- `text-ja-card-body` — card descriptions, helper text, form explanations
-- `text-ja-nowrap` — prices, number+unit pairs, short proper nouns (opt-in; never on body or long names)
+- `text-ja-nowrap` — prices, number+unit pairs, short proper nouns, AND quoted phrases (「〜」) inside phrase-break copy (Rule 22)
 - `text-ja-justify` — opt-in only, for wide editorial article columns (≥40 chars/line). Never on cards / FAQ / mobile body / buttons.
 - `text-ja-justify-desktop` — same as above but auto-falls-back to `left` on ≤600px.
+
+**Picking lead vs lead-phrased (and card-body vs card-body-phrased):** if the copy is left-aligned, pick the base class. If the copy is centered AND short (≤2 lines), pick the `-phrased` variant. When unsure, default to the base class and ask the user — see Step 0 and Rule 21.
 
 Do not apply `text-ja-button` to large option cards or cards with descriptions — they must wrap.
 
@@ -691,18 +806,41 @@ Output **`<wbr>`** — a real, semantically inert HTML element. Never emit zero-
 
 ### Where to apply BudouX
 
-USE it on short, curated **display** copy:
-- hero / section headings, card titles, CTA text
-- short lead paragraphs, short card / feature descriptions
-- any important copy that breaks badly on mobile
+The where-to-apply rules track Rule 21's tiers — phrase-break (whether via `auto-phrase` or BudouX) is governed by alignment and length.
 
-Do NOT use it on:
-- long-form body / blog article text, Q&A long comments
-- form input values, URLs, email addresses, phone numbers, product codes / IDs
-- price tables, admin-panel input fields
-- user-generated content
+**USE BudouX on (Tier A and Tier B opt-in):**
+- Hero / section headings, card titles, FAQ summary titles (Tier A — short display copy, alignment-agnostic)
+- **Centered** lead paragraphs, hero subtitles, banner copy (Tier B — confirm alignment first)
+- **Centered short** card / feature descriptions, 1–2 lines (Tier B — confirm alignment AND length)
+- CTA text where the break position carries meaning
 
-**Proper nouns** — clinic names, personal names, product / service / medical names (e.g. "フォームソティックス・メディカル") — are where auto-segmentation most often guesses wrong. Do not trust BudouX (or `auto-phrase`) there: protect them by hand with `white-space: nowrap`, manual `<wbr>`, or `<br>` (see "Manual Phrase Protection"), and keep hand-authored breaks authoritative where they mix with BudouX output.
+**Do NOT use BudouX on (Tier C and friends):**
+- **Left-aligned** lead paragraphs, card descriptions, feature descriptions, FAQ answers — these are the most common misapplication. BudouX over-fragments left-aligned body and produces visible right-edge gaps that read as a CSS bug. Default these to natural wrapping (`.text-ja-card-body`, `.text-ja-lead`).
+- Long-form body / blog article text, Q&A long comments
+- Form input values, URLs, email addresses, phone numbers, product codes / IDs
+- Price tables, admin-panel input fields
+- User-generated content
+
+**Quoted phrases (`「〜」`, `『〜』`)** — BudouX's segmentation model will split inside `「なぜ処方するのか」` into `「なぜ処方」` + `「するのか」`. Wrap each quoted phrase in `<span class="nowrap">…</span>` before BudouX runs over it. See Rule 22 and the BudouX preprocessing note below.
+
+**Proper nouns** — clinic names, personal names, product / service / medical names (e.g. "フォームソティックス・メディカル") — are where auto-segmentation also guesses wrong. Do not trust BudouX (or `auto-phrase`) there: protect them by hand with `white-space: nowrap`, manual `<wbr>`, or `<br>` (see "Manual Phrase Protection"), and keep hand-authored breaks authoritative where they mix with BudouX output.
+
+**BudouX preprocessing for quoted phrases.** If you build a content pipeline, run this transform *before* BudouX segments the text, so the quotation marks and their contents survive as a single token:
+
+```js
+// Wrap 「…」 quoted phrases in nowrap before BudouX sees them.
+// Rule 22: prevents mid-quote splits.
+function protectQuotedPhrases(html) {
+  return html.replace(
+    /「([^」]+)」/g,
+    '<span class="nowrap">「$1」</span>'
+  );
+}
+
+// Then run BudouX on the protected HTML via translateHTMLString.
+const protected = protectQuotedPhrases(rawHtml);
+const wrapped = parser.translateHTMLString(protected).replaceAll("\u200b", "<wbr>");
+```
 
 > **⚠️ After applying BudouX inside cards, always re-check the layout.** Inserting `<wbr>` (and `translateHTMLString`'s `keep-all` wrapper) changes where lines break — a card's line count and height can shift, text reflows, a card can grow taller, or a card grid can end up uneven. BudouX on card text is **not "apply and forget"**: after applying, view every affected card at mobile and desktop widths and adjust each one individually where needed — font-size, padding, copy length, or explicit `titleLines`. Budget time for this per-card pass; treat it as part of the BudouX work, not optional polish.
 
@@ -736,6 +874,8 @@ After typography changes, verify:
 - No `<br>` used to structure body / FAQ / article paragraphs — `<br>` only in hero / banner / short display copy
 - Card descriptions: trailing character not orphaned on the last line — check iOS Safari / Firefox, where `auto-phrase` is unavailable and only `text-wrap: pretty` guards the orphan
 - Body, lead, card descriptions, FAQ text use `text-align: left` (Japanese default) — verify no `text-align: justify` slipped in. Symptoms of an unwanted justify: inter-character gaps on lines 1..N-1 and an empty right edge on the last line of every paragraph. If justify is intentional (editorial article body only), confirm column ≥40 chars/line at desktop AND switches to `left` on mobile via media query
+- **Phrase-break × alignment match (Rule 21):** for every text surface that has `word-break: auto-phrase` or BudouX `<wbr>` applied, verify it is either (a) short display copy (heading / card title / FAQ summary), (b) centered lead / hero subtitle / banner, or (c) opt-in `.text-ja-*-phrased` variant chosen deliberately. **Left-aligned body / card descriptions / FAQ answers should NOT have phrase-break applied** — the symptom is a gap-pocked right edge where lines ended early at phrase boundaries. If you see phrase-break + left-aligned + multi-line body, remove the phrase-break (switch to natural wrap utilities)
+- **Quoted phrases (`「〜」`, `『〜』`) inside phrase-break text (Rule 22):** every quoted phrase inside a heading, card title, or `-phrased` lead/body must be wrapped in `<span class="nowrap">…</span>`. Symptom of missing protection: the quotation breaks mid-quote ("「なぜ処方 / するのか」"). Re-check after BudouX runs, since the bug only appears at narrow widths
 - Font weight not synthesized — display fonts show their actual weight, not browser-faked bold
 - Table cells: no single-character orphans on the last line, headers not breaking mid-word, longest cell in each column fits the assigned `<colgroup>` width
 - Tables narrower than viewport: horizontal scroll appears below `min-width`, layout does not break out of its container
@@ -758,6 +898,8 @@ After editing, report:
 
 - **Scope applied** — a per-structure breakdown: which structure types (headings, leads, card descriptions, FAQ, body paragraphs, table cells) received phrase-aware breaking and which were deliberately left out. Must match what was agreed in Step 0, so the user sees exactly what changed where.
 - **Text alignment changes** — per-structure breakdown. State the default applied (`text-align: left` for body / lead / card descriptions / FAQ) and any `text-align: justify` that was removed, kept (with opt-in conditions), or added. For each justify removal, name the visual reason (inter-character gaps + last-line orphaning) and the surfaces affected.
+- **Phrase-break tier assignment** — for each text surface touched, name the tier (A: always ON, B: alignment-coupled, C: always OFF) and the resulting state. Call out any Tier B surfaces where you applied the `-phrased` opt-in (centered copy) versus the default base class. Note any phrase-break removals from left-aligned surfaces — those are bugfixes per Rule 21.
+- **Quoted-phrase protection (Rule 22)** — list any `「〜」` / `『〜』` spans wrapped in `<span class="nowrap">` inside heading / card title / phrased copy, and any BudouX preprocessing added for this purpose.
 - CSS rules added or changed
 - Components / selectors where typography classes or rules were applied
 - Dangerous rules removed or replaced (especially `word-break: break-all`)
